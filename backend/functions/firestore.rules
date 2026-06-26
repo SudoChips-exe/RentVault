@@ -1,0 +1,73 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: get user role from the users collection
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // Helper: check if the user has a specific role
+    function hasRole(role) {
+      return isAuthenticated() && getUserRole() == role;
+    }
+
+    // Users collection
+    match /users/{uid} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == uid;
+      allow update: if isAuthenticated() && request.auth.uid == uid;
+      allow delete: if false; // Never delete users
+    }
+
+    // Listings collection - public read, authenticated write
+    match /listings/{listingId} {
+      allow read: if true; // Public read for search without auth
+      allow create: if isAuthenticated() && hasRole('landlord');
+      allow update: if isAuthenticated() && (
+        hasRole('admin') ||
+        (hasRole('landlord') && resource.data.landlordUid == request.auth.uid)
+      );
+      allow delete: if hasRole('admin');
+    }
+
+    // Transactions collection
+    match /transactions/{transactionId} {
+      // Tenant can read own transactions, landlord/agent can read associated, admin can read all
+      allow read: if isAuthenticated() && (
+        hasRole('admin') ||
+        resource.data.tenantUid == request.auth.uid ||
+        resource.data.landlordUid == request.auth.uid ||
+        resource.data.agentUid == request.auth.uid
+      );
+      // Only Cloud Functions (admin SDK) should write to transactions
+      allow write: if false;
+    }
+
+    // SplitConfigs collection
+    match /splitConfigs/{configId} {
+      allow read: if true; // Public read for listing display
+      allow write: if hasRole('admin'); // Only admins can manage split configs
+    }
+
+    // AuditLogs collection
+    match /auditLogs/{logId} {
+      // Admins can read audit logs
+      allow read: if hasRole('admin');
+      // Only Cloud Functions should write audit logs
+      allow write: if false;
+    }
+
+    // Webhook events (deduplication)
+    match /webhookEvents/{eventId} {
+      allow read: if hasRole('admin');
+      allow write: if false; // Only Cloud Functions
+    }
+  }
+}

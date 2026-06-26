@@ -1,0 +1,26 @@
+{
+  "name": "rent-split-escrow-backend",
+  "scripts": {
+    "build": "tsc",
+    "serve": "bun run build && firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log",
+    "test": "bun test",
+    "test:watch": "bun test --watch"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "firebase-admin": "^11.11.0",
+    "firebase-functions": "^4.5.0",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "bun-types": "^1.0.0",
+    "typescript": "^5.3.0",
+    "@types/node": "^18.19.0"
+  },
+  "private": true
+}
