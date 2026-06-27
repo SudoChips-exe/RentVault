@@ -21,21 +21,18 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
 
-// Connect to emulators in development
+// Connect to emulators ONLY if NEXT_PUBLIC_USE_EMULATOR=true is explicitly set
 if (
   typeof window !== 'undefined' &&
-  (process.env.NEXT_PUBLIC_USE_EMULATOR === 'true' || process.env.NODE_ENV === 'development')
+  process.env.NEXT_PUBLIC_USE_EMULATOR === 'true'
 ) {
-  // Only connect once
-  if (!(auth as any)._canInitEmulator) {
-    try {
-      connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-      connectFirestoreEmulator(db, 'localhost', 8080);
-      connectStorageEmulator(storage, 'localhost', 9199);
-      connectFunctionsEmulator(functions, 'localhost', 5001);
-      console.log('[FIREBASE] Dashboards connected to local emulators');
-    } catch {
-      // Already connected
-    }
+  try {
+    connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    connectStorageEmulator(storage, 'localhost', 9199);
+    connectFunctionsEmulator(functions, 'localhost', 5001);
+    console.log('[FIREBASE] Dashboards connected to local emulators');
+  } catch {
+    // Already connected
   }
 }

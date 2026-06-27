@@ -20,8 +20,8 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
 
-// Connect to emulators if VITE_USE_EMULATOR is true
-if (import.meta.env.VITE_USE_EMULATOR === 'true' || import.meta.env.DEV) {
+// Connect to emulators ONLY if VITE_USE_EMULATOR=true is explicitly set
+if (import.meta.env.VITE_USE_EMULATOR === 'true') {
   console.log('[FIREBASE] Connecting to local emulators...');
   connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
   connectFirestoreEmulator(db, 'localhost', 8080);

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"bun --cwd frontend run dev\" \"bun --cwd dashboards run dev\""
+    "dev": "concurrently \"cd frontend && bun run dev\" \"cd dashboards && bun run dev\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
