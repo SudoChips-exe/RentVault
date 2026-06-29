@@ -61,8 +61,13 @@ function AdminVerificationContent() {
     setActionLoading(true);
     setError(null);
     try {
-      const review = httpsCallable<{ transactionId: string, approved: boolean }, any>(functions, 'adminReviewVerification');
-      await review({ transactionId: selectedTx.id, approved });
+      if (approved) {
+        const approve = httpsCallable<{ transactionId: string }, any>(functions, 'verificationApprove');
+        await approve({ transactionId: selectedTx.id });
+      } else {
+        const reject = httpsCallable<{ transactionId: string }, any>(functions, 'verificationReject');
+        await reject({ transactionId: selectedTx.id });
+      }
       setSelectedTx(null);
     } catch (err) {
       setError(parseFirebaseError(err).message);

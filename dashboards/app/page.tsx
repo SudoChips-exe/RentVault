@@ -13,8 +13,12 @@ export default function Home() {
     if (!loading && user) {
       if (user.role === 'admin') {
         router.push('/admin');
-      } else {
+      } else if (user.role === 'landlord' || user.role === 'agent') {
         router.push('/landlord');
+      } else {
+        // User is a tenant - they shouldn't be in the dashboard
+        // We could redirect them to the public site or show a message
+        console.warn('User has tenant role and cannot access dashboard');
       }
     }
   }, [user, loading, router]);
@@ -40,13 +44,13 @@ export default function Home() {
           
           <h1 className="text-2xl font-bold text-slate-100 mb-2">Welcome Back</h1>
           <p className="text-slate-400 text-sm mb-8 leading-relaxed">
-            Sign in to access the Rent Split Escrow landlord and admin dashboard.
+            Sign in to access the RentVault landlord and admin dashboard.
           </p>
 
-          <button
-            onClick={signInWithGoogle}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-400 hover:to-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:shadow-brand-500/50 transition-all duration-200 active:scale-95"
-          >
+           <button
+             onClick={signInWithGoogle}
+             className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-400 hover:to-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:shadow-brand-500/50 transition-all duration-200 active:scale-95 hover:scale-[1.02] hover:brightness-110"
+           >
             Sign in with Google
             <ArrowRight className="w-4 h-4" />
           </button>

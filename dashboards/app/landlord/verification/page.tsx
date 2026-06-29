@@ -77,7 +77,7 @@ export default function VerificationPage() {
           // 2. Call Function
           const submitVerification = httpsCallable<{ transactionId: string, documentUrl: string }, any>(
             functions,
-            'landlordSubmitVerification'
+            'verificationSubmit'
           );
           
           try {

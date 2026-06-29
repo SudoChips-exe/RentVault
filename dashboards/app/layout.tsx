@@ -7,7 +7,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'Rent Split Escrow - Dashboard',
+  title: 'RentVault - Dashboard',
   description: 'Manage your rent escrow transactions.',
 };
 

@@ -50,7 +50,7 @@ function AdminRefundsContent() {
     setActionLoading(id);
     setError(null);
     try {
-      const refund = httpsCallable<{ transactionId: string }, any>(functions, 'adminProcessRefund');
+      const refund = httpsCallable<{ transactionId: string }, any>(functions, 'manualRefund');
       await refund({ transactionId: id });
     } catch (err) {
       setError(parseFirebaseError(err).message);

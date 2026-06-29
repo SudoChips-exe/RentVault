@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Building2, LayoutDashboard, BadgeCheck, RotateCcw, ScrollText,
-  LogOut, ChevronDown, User, Settings, Menu, X, Shield
+  LogOut, ChevronDown, User, Settings, Menu, X, Shield, Home, SlidersHorizontal
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -20,14 +20,17 @@ const roleColors: Record<string, string> = {
 
 const LANDLORD_NAV = [
   { href: '/landlord', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/landlord/listings', icon: Home, label: 'My Listings' },
   { href: '/landlord/verification', icon: BadgeCheck, label: 'Verification Upload' },
   { href: '/landlord/disbursements', icon: Building2, label: 'Disbursements' },
+  { href: '/landlord/settings', icon: Settings, label: 'Settings' },
 ];
 
 const ADMIN_NAV = [
   { href: '/admin', icon: LayoutDashboard, label: 'All Transactions' },
   { href: '/admin/verification', icon: BadgeCheck, label: 'Verification Review' },
   { href: '/admin/refunds', icon: RotateCcw, label: 'Manual Refunds' },
+  { href: '/admin/split-configs', icon: SlidersHorizontal, label: 'Split Configs' },
   { href: '/admin/audit', icon: ScrollText, label: 'Audit Logs' },
 ];
 
@@ -73,7 +76,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
             <Building2 className="w-5 h-5 text-white" />
           </div>
           <div>
-            <span className="font-bold text-slate-100 text-sm leading-none">Rent Split</span>
+            <span className="font-bold text-slate-100 text-sm leading-none">RentVault</span>
             <span className="block text-xs text-emerald-400 font-medium">
               {isAdmin ? 'Admin Portal' : 'Landlord Portal'}
             </span>

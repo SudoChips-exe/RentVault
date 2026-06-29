@@ -23,6 +23,10 @@ export default function LandlordDashboard() {
 
   useEffect(() => {
     if (!user) return;
+    if (user.role !== 'landlord' && user.role !== 'agent' && user.role !== 'admin') {
+      window.location.href = '/';
+      return;
+    }
     const q = query(
       collection(db, 'transactions'),
       where('landlordUid', '==', user.uid),

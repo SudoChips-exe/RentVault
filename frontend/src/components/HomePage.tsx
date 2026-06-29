@@ -59,7 +59,7 @@ export const HomePage: React.FC = () => {
           </h1>
 
           <p className="text-slate-400 text-xl leading-relaxed max-w-2xl mx-auto mb-12">
-            Rent Split Escrow protects tenants and landlords with automated escrow holding,
+            RentVault protects tenants and landlords with automated escrow holding,
             verification-based disbursements, and instant refunds.
           </p>
 

@@ -7,9 +7,10 @@ import {
   onAuthStateChanged,
 } from 'firebase/auth';
 import { doc, setDoc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { auth, db } from '../lib/firebase';
 
-export interface UserProfile {
+// Shared types
+interface UserProfile {
   uid: string;
   email: string;
   role: 'tenant' | 'landlord' | 'agent' | 'admin';
@@ -29,17 +30,14 @@ interface AuthContextType {
   updateNombaAccount: (accountId: string) => Promise<void>;
 }
 
+// Create a single shared context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Shared AuthProvider component
+const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    console.log('AuthContext - Firebase User:', firebaseUser);
-    console.log('AuthContext - User Profile:', user);
-  }, [firebaseUser, user]);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (fUser) => {
@@ -91,12 +89,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    setLoading(true);
     try {
-      setUser(null);
-      setFirebaseUser(null);
       await signOut(auth);
     } catch (error) {
       console.error('[AUTH_CONTEXT] Sign-out failed:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -132,25 +131,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        firebaseUser,
-        loading,
-        signInWithGoogle,
-        logout,
-        switchRole,
-        updateNombaAccount,
-      }}
+      value={{ user, firebaseUser, loading, signInWithGoogle, logout, switchRole, updateNombaAccount }}
     >
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
+// Shared hook
+const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
+
+export { AuthProvider, useAuth, UserProfile };

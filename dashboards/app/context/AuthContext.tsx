@@ -8,7 +8,7 @@ import {
   signOut,
   onAuthStateChanged,
 } from 'firebase/auth';
-import { doc, setDoc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, onSnapshot, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 
 export interface UserProfile {
@@ -26,6 +26,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   switchRole: (role: 'tenant' | 'landlord' | 'agent' | 'admin') => Promise<void>;
+  updateNombaAccount: (accountId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, (fUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (fUser) => {
       setFirebaseUser(fUser);
       if (!fUser) {
         setUser(null);
@@ -45,29 +46,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const userRef = doc(db, 'users', fUser.uid);
-      const unsubSnap = onSnapshot(userRef, async (snap) => {
+      try {
+        const snap = await getDoc(userRef);
         if (snap.exists()) {
           setUser({ uid: fUser.uid, ...snap.data() } as UserProfile);
-          setLoading(false);
         } else {
           const newProfile = {
             email: fUser.email || '',
-            displayName: fUser.displayName || 'New User',
+            displayName: fUser.displayName || fUser.email?.split('@')[0] || '',
             role: 'tenant' as const,
-            nombaAccountId: `ACC-MOCK-${fUser.uid.substring(0, 6).toUpperCase()}`,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           };
           await setDoc(userRef, newProfile);
           setUser({ uid: fUser.uid, ...newProfile });
-          setLoading(false);
+        }
+      } catch (e) {
+        console.error('Error fetching initial profile:', e);
+      } finally {
+        setLoading(false);
+      }
+
+      const unsubSnap = onSnapshot(userRef, (snap) => {
+        if (snap.exists()) {
+          setUser({ uid: fUser.uid, ...snap.data() } as UserProfile);
         }
       });
 
       return () => unsubSnap();
     });
 
-    return () => unsubAuth();
+    return () => unsubscribeAuth();
   }, []);
 
   const signInWithGoogle = async () => {
@@ -76,8 +85,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    await signOut(auth);
-    setUser(null);
+    try {
+      setUser(null);
+      setFirebaseUser(null);
+      await signOut(auth);
+      window.location.href = '/'; // Redirect to landing page after logout
+    } catch (error) {
+      console.error('[AUTH_CONTEXT] Sign-out failed:', error);
+    }
   };
 
   const switchRole = async (role: 'tenant' | 'landlord' | 'agent' | 'admin') => {
@@ -85,8 +100,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await updateDoc(doc(db, 'users', firebaseUser.uid), { role, updatedAt: serverTimestamp() });
   };
 
+  const updateNombaAccount = async (accountId: string) => {
+    if (!firebaseUser) return;
+    await updateDoc(doc(db, 'users', firebaseUser.uid), {
+      nombaAccountId: accountId,
+      updatedAt: serverTimestamp(),
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, signInWithGoogle, logout, switchRole }}>
+    <AuthContext.Provider value={{ user, firebaseUser, loading, signInWithGoogle, logout, switchRole, updateNombaAccount }}>
       {children}
     </AuthContext.Provider>
   );

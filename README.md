@@ -1,4 +1,4 @@
-# Rent Split Escrow System
+# RentVault System
 
 A Firebase-first web application that enables secure rent payments with automatic escrow, landlord verification, and instant split disbursements to landlords, agents, and platforms using the Nomba payment API.
 
@@ -10,7 +10,7 @@ Built for hackathon demo in 2-3 days.
 
 **The Problem:** Traditional rent payments lack transparency and trust. Tenants need assurance that their payment reaches the rightful landlord, while landlords and agents need instant, automated disbursements.
 
-**The Solution:** Rent Split Escrow holds tenant payments in escrow, verifies landlord/agent credentials, and automatically splits funds to all parties—or refunds tenants if verification fails.
+**The Solution:** RentVault holds tenant payments in escrow, verifies landlord/agent credentials, and automatically splits funds to all parties—or refunds tenants if verification fails.
 
 ### Key Features
 
@@ -106,7 +106,7 @@ Built for hackathon demo in 2-3 days.
 ## 📂 Project Structure
 
 ```
-rent-split-escrow/
+rentvault/
 ├── backend/                    # Firebase Cloud Functions
 │   ├── functions/
 │   │   ├── src/
@@ -184,7 +184,7 @@ rent-split-escrow/
 firebase login
 
 # Create new Firebase project (or use existing)
-firebase projects:create rent-split-escrow
+firebase projects:create rentvault
 
 # Initialize Firebase in this directory
 firebase init
@@ -244,7 +244,7 @@ firebase deploy --only firestore:rules,firestore:indexes
 firebase deploy --only functions
 
 # Note the webhook listener URL from deployment output
-# Example: https://us-central1-rent-split-escrow.cloudfunctions.net/webhook-listener
+# Example: https://us-central1-rentvault.cloudfunctions.net/webhook-listener
 ```
 
 ### 5. Configure Nomba Webhook

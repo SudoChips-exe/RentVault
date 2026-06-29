@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Building2, LogOut, User, ChevronDown, Settings, Home } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { SignInModal } from './SignInModal';
@@ -8,10 +8,11 @@ const ROLES = ['tenant', 'landlord', 'agent', 'admin'] as const;
 
 export const Navbar: React.FC = () => {
   const { user, firebaseUser, logout, switchRole, loading } = useAuth();
+  console.log('Navbar - User:', user);
+  console.log('Navbar - Firebase User:', firebaseUser);
   const [menuOpen, setMenuOpen] = useState(false);
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
   const [signInModalOpen, setSignInModalOpen] = useState(false);
-  const navigate = useNavigate();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-950 border-b border-slate-800">
@@ -23,7 +24,7 @@ export const Navbar: React.FC = () => {
               <Building2 className="w-4 h-4 text-white" />
             </div>
             <div>
-              <span className="font-bold text-slate-50 text-sm leading-none block mb-0.5">Rent Split</span>
+              <span className="font-bold text-slate-50 text-sm leading-none block mb-0.5">RentVault</span>
               <span className="text-xs text-brand-400 font-medium leading-none block">Escrow</span>
             </div>
           </Link>

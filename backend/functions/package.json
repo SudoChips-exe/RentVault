@@ -1,5 +1,5 @@
 {
-  "name": "rent-split-escrow-backend",
+  "name": "rentvault-backend",
   "scripts": {
     "build": "tsc",
     "serve": "bun run build && firebase emulators:start --only functions",

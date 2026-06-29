@@ -42,6 +42,11 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
+    if (!user) return;
+    if (user.role !== 'admin') {
+      window.location.href = '/';
+      return;
+    }
     if (user?.role === 'admin') {
       fetchTransactions();
     }

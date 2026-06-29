@@ -47,7 +47,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
         </button>
 
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-slate-50 mb-2">Welcome to Rent Split</h2>
+          <h2 className="text-2xl font-bold text-slate-50 mb-2">Welcome to RentVault</h2>
           <p className="text-slate-400 text-sm">Choose how you want to continue to securely sign in with Google.</p>
         </div>
 
