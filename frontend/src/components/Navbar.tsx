@@ -8,8 +8,6 @@ const ROLES = ['tenant', 'landlord', 'agent', 'admin'] as const;
 
 export const Navbar: React.FC = () => {
   const { user, firebaseUser, logout, switchRole, loading } = useAuth();
-  console.log('Navbar - User:', user);
-  console.log('Navbar - Firebase User:', firebaseUser);
   const [menuOpen, setMenuOpen] = useState(false);
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
   const [signInModalOpen, setSignInModalOpen] = useState(false);

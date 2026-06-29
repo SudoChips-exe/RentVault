@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot, collection, getDocs } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { formatAmount, formatDate, formatCountdown, getStatusLabel } from '../lib/errorHelper';
 import {
@@ -71,13 +71,8 @@ export const TransactionStatus: React.FC = () => {
     return () => clearInterval(interval);
   }, [tx?.verificationDeadline]);
 
-  // Load disbursements
-  const loadDisbursements = useCallback(async (transactionId: string) => {
-    try {
-      const snap = await getDocs(collection(db, 'transactions', transactionId, 'disbursements'));
-      setDisbursements(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Disbursement)));
-    } catch {}
-  }, []);
+  // Load disbursements directly from the transaction document's map field
+  // (backend writes them as tx.disbursements = { landlord: {...}, agent: {...}, platform: {...} })
 
   useEffect(() => {
     if (!id) return;
@@ -100,9 +95,18 @@ export const TransactionStatus: React.FC = () => {
           setTx(data);
           setLoading(false);
 
-          // Load disbursements when relevant
-          if (['verified', 'completed', 'disbursement_pending', 'disbursement_partial_failure'].includes(data.status)) {
-            loadDisbursements(snap.id);
+          // Derive disbursements from the map field on the transaction doc (live, via onSnapshot)
+          if ((data as any).disbursements) {
+            const list = Object.entries((data as any).disbursements).map(
+              ([recipientType, d]: [string, any]) => ({
+                id: recipientType,
+                recipientType: recipientType as Disbursement['recipientType'],
+                ...d,
+              })
+            );
+            setDisbursements(list);
+          } else {
+            setDisbursements([]);
           }
         },
         (err) => {
@@ -126,7 +130,7 @@ export const TransactionStatus: React.FC = () => {
       unsub();
       clearTimeout(retryTimer);
     };
-  }, [id, loadDisbursements]);
+  }, [id]);
 
   if (loading) {
     return (
