@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { useHeaderTheme } from '../contexts/HeaderThemeContext';
+import { ArrowRight, CheckCircle2, ShieldCheck, Zap, Scale, Eye, HelpCircle } from 'lucide-react';
 import { SignInModal } from './SignInModal';
 
-// ─── Animated escrow ledger widget ────────────────────────────────────────────
+// ─── Refined Product Demo Widget ──────────────────────────────────────────────
 
 interface DisbursementRow {
   label: string;
@@ -28,7 +29,7 @@ const ESCROW_STATES: EscrowState[] = [
     status: 'FUNDS HELD',
     label: 'Payment received. Awaiting documents.',
     dotClass: 'bg-amber-400',
-    statusClass: 'text-amber-400',
+    statusClass: 'text-amber-600',
     progress: 20,
     disbursements: null,
   },
@@ -37,7 +38,7 @@ const ESCROW_STATES: EscrowState[] = [
     status: 'DOCS SUBMITTED',
     label: 'Admin reviewing ownership papers.',
     dotClass: 'bg-blue-400',
-    statusClass: 'text-blue-400',
+    statusClass: 'text-blue-600',
     progress: 55,
     disbursements: null,
   },
@@ -46,7 +47,7 @@ const ESCROW_STATES: EscrowState[] = [
     status: 'VERIFIED',
     label: 'Landlord confirmed. Splitting funds.',
     dotClass: 'bg-brand-400',
-    statusClass: 'text-brand-400',
+    statusClass: 'text-brand-600',
     progress: 82,
     disbursements: null,
   },
@@ -55,7 +56,7 @@ const ESCROW_STATES: EscrowState[] = [
     status: 'DISBURSED',
     label: 'All transfers complete.',
     dotClass: 'bg-brand-500',
-    statusClass: 'text-brand-400',
+    statusClass: 'text-brand-600',
     progress: 100,
     disbursements: [
       { label: 'Landlord', pct: '70%', amount: '₦595,000' },
@@ -88,96 +89,85 @@ const EscrowLedger: React.FC = () => {
   }, []);
 
   return (
-    <div className="relative w-full max-w-sm mx-auto lg:mx-0">
-      {/* Ambient glow behind card */}
-      <div className="absolute -inset-8 bg-brand-500/8 rounded-3xl blur-3xl pointer-events-none" />
-
-      {/* Terminal card */}
-      <div className="relative bg-slate-900 border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl shadow-black/60">
-        {/* Mac-style header bar */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-slate-800/70 border-b border-slate-700/50">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500/60" />
-          <span className="w-2.5 h-2.5 rounded-full bg-brand-500/60" />
-          <span className="ml-2 text-xs font-mono text-slate-600 tracking-wide">rentvault · escrow</span>
+    <div className="relative w-full max-w-sm mx-auto lg:mx-0 group">
+      <div className="absolute -inset-4 bg-gradient-to-tr from-brand-500/20 to-nomba-500/20 rounded-[2.5rem] blur-2xl pointer-events-none group-hover:opacity-100 transition-opacity duration-500" />
+      
+      <div className="relative bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-2xl shadow-slate-200/50">
+        <div className="flex items-center justify-between px-6 py-4 bg-slate-50 border-b border-slate-100">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-slate-300" />
+            <span className="w-2 h-2 rounded-full bg-slate-300" />
+            <span className="w-2 h-2 rounded-full bg-slate-300" />
+          </div>
+          <span className="text-[10px] font-mono font-medium text-slate-400 uppercase tracking-widest">Secure Vault · RV-0847</span>
         </div>
 
-        <div className="p-6">
-          {/* Transaction metadata */}
-          <div className="flex items-center justify-between mb-5">
-            <span className="text-xs font-mono text-slate-600 uppercase tracking-widest">Transaction</span>
-            <span className="text-xs font-mono text-slate-600">RV-2025-0847</span>
+        <div className="p-8">
+          <div className="mb-8">
+            <span className="text-xs font-medium text-slate-400 uppercase tracking-widest block mb-1">Current Transaction</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-black text-slate-900 tracking-tight">₦850,000</span>
+              <span className="text-xs font-medium text-slate-500">/ year</span>
+            </div>
+            <div className="text-xs font-medium text-slate-400 mt-1">Lekki Phase 1, Lagos</div>
           </div>
 
-          {/* Amount — IBM Plex Mono, prominent */}
-          <div className="mb-1">
-            <span className="text-4xl font-mono font-bold text-slate-50 tracking-tight">₦850,000</span>
-          </div>
-          <div className="text-xs font-mono text-slate-600 mb-6 tracking-wide">1 YEAR · LEKKI PHASE 1</div>
-
-          {/* Live status indicator */}
           <div
-            className="flex items-center gap-2.5 mb-4 transition-opacity duration-300"
-            style={{ opacity: visible ? 1 : 0 }}
+            className="flex items-center gap-3 mb-6 transition-all duration-300"
+            style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(4px)' }}
           >
-            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${current.dotClass}`} />
-            <span className={`text-sm font-mono font-bold ${current.statusClass}`}>
+            <span className={`w-2 h-2 rounded-full ${current.dotClass} animate-pulse`} />
+            <span className={`text-xs font-bold uppercase tracking-widest ${current.statusClass}`}>
               {current.status}
             </span>
           </div>
 
-          {/* Progress bar */}
-          <div className="h-0.5 bg-slate-800 rounded-full mb-3 overflow-hidden">
+          <div className="h-1.5 bg-slate-100 rounded-full mb-4 overflow-hidden">
             <div
-              className="h-full bg-brand-500 rounded-full transition-all duration-700 ease-in-out"
+              className="h-full bg-slate-900 rounded-full transition-all duration-1000 ease-out"
               style={{ width: `${current.progress}%` }}
             />
           </div>
 
-          {/* Status message */}
           <p
-            className="text-xs font-mono text-slate-500 mb-6 transition-opacity duration-300"
+            className="text-sm text-slate-500 mb-8 transition-all duration-300"
             style={{ opacity: visible ? 1 : 0 }}
           >
             {current.label}
           </p>
 
-          {/* Disbursement rows */}
-          <div className="border-t border-slate-800 pt-4 space-y-2.5">
+          <div className="space-y-3">
             {current.disbursements
               ? current.disbursements.map((d) => (
-                  <div key={d.label} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-3 h-3 text-brand-500 flex-shrink-0" />
-                      <span className="text-xs font-mono text-slate-400">{d.label}</span>
-                      <span className="text-xs font-mono text-slate-600">{d.pct}</span>
+                  <div key={d.label} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="w-4 h-4 text-brand-500" />
+                      <span className="text-sm font-medium text-slate-700">{d.label}</span>
+                      <span className="text-xs font-mono text-slate-400">{d.pct}</span>
                     </div>
-                    <span className="text-xs font-mono font-semibold text-brand-400">{d.amount}</span>
+                    <span className="text-sm font-bold text-slate-900">{d.amount}</span>
                   </div>
                 ))
               : PENDING_ROWS.map((r) => (
-                  <div key={r.label} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 flex items-center justify-center">
-                        <span className="w-1.5 h-1.5 rounded-full bg-slate-700" />
-                      </span>
-                      <span className="text-xs font-mono text-slate-600">{r.label}</span>
-                      <span className="text-xs font-mono text-slate-700">{r.pct}</span>
+                  <div key={r.label} className="flex items-center justify-between p-3 rounded-xl border border-dashed border-slate-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded-full bg-slate-100 border border-slate-200" />
+                      <span className="text-sm font-medium text-slate-400">{r.label}</span>
+                      <span className="text-xs font-mono text-slate-300">{r.pct}</span>
                     </div>
-                    <span className="text-xs font-mono text-slate-700">─── pending</span>
+                    <span className="text-xs font-medium text-slate-300">Pending</span>
                   </div>
                 ))}
           </div>
         </div>
       </div>
 
-      {/* State dots */}
-      <div className="flex items-center justify-center gap-1.5 mt-5">
+      <div className="flex items-center justify-center gap-2 mt-6">
         {ESCROW_STATES.map((_, i) => (
           <span
             key={i}
-            className={`w-1 h-1 rounded-full transition-all duration-300 ${
-              i === stateIndex ? 'bg-brand-500 w-4' : 'bg-slate-700'
+            className={`h-1 rounded-full transition-all duration-500 ${
+              i === stateIndex ? 'bg-slate-900 w-6' : 'bg-slate-200 w-2'
             }`}
           />
         ))}
@@ -186,32 +176,70 @@ const EscrowLedger: React.FC = () => {
   );
 };
 
-// ─── How it works — three editorial columns ───────────────────────────────────
-
 const HOW_IT_WORKS = [
   {
     num: '01',
-    title: 'Escrow',
-    body: 'Your payment sits in Nomba\'s secure layer — not in the landlord\'s account — until an admin gives the green light.',
+    title: 'Secure Escrow',
+    body: 'Your payment is held in a regulated vault powered by Nomba. Funds are never sent directly to the landlord until ownership is verified.',
   },
   {
     num: '02',
-    title: 'Verify',
-    body: 'Landlord or agent submits ownership documents. An admin reviews independently. No docs approved = no access to your funds.',
+    title: 'Independent Audit',
+    body: 'Our admins review legal titles and ownership papers. No approval means no access to funds, ensuring total protection.',
   },
   {
     num: '03',
-    title: 'Disburse',
-    body: 'Approval fires automatic transfers — landlord, agent, and platform each receive exactly their agreed percentage, instantly.',
+    title: 'Precision Payout',
+    body: 'Once verified, the agreed split is executed automatically. Landlords, agents, and the platform receive their exact share instantly.',
   },
 ];
 
-// ─── Main component ───────────────────────────────────────────────────────────
+const FAQS = [
+  {
+    q: 'What happens if the landlord is not verified?',
+    a: 'If our administrative audit fails to verify the legal ownership of the property, the escrow contract is voided and 100% of your funds are returned to your account immediately.',
+  },
+  {
+    q: 'How long does the verification process take?',
+    a: 'On average, ownership verification takes 48-72 hours. We work directly with government registries to ensure the data is authentic.',
+  },
+  {
+    q: 'Is my money safe with RentVault?',
+    a: 'Yes. We partner with Nomba to provide enterprise-grade financial rails. Your funds are held in regulated accounts, not in any individual\'s personal account.',
+  },
+  {
+    q: 'Can I change the disbursement percentages?',
+    a: 'The percentages are agreed upon at the time of the listing creation. Any changes must be digitally signed by both the tenant and the landlord through the platform.',
+  },
+];
 
 export const HomePage: React.FC = () => {
   const { user } = useAuth();
+  const { setTheme } = useHeaderTheme();
   const navigate = useNavigate();
   const [signInModalOpen, setSignInModalOpen] = useState(false);
+
+  const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const theme = entry.target.getAttribute('data-theme') as 'light' | 'dark';
+            setTheme(theme || 'light');
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
+
+    Object.values(sectionRefs.current).forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
+
+    return () => observer.disconnect();
+  }, [setTheme]);
 
   const handleCTA = () => {
     if (user) navigate('/listings');
@@ -219,107 +247,279 @@ export const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950">
-
-       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
-       <section className="relative min-h-[calc(100vh-64px)] flex items-center px-4 sm:px-6 lg:px-8 pt-16 overflow-hidden">
-         {/* Professional subtle depth: Radial gradient focus */}
-         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,_rgba(59,130,246,0.05)_0%,transparent_70%)]" />
-         {/* Fade grid to black at bottom */}
-         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950 pointer-events-none" />
+    <div className="min-h-screen bg-white">
+      {/* ── Hero (Light) ─────────────────────────────────────────────────────────────── */}
+      <section 
+        ref={(el) => { sectionRefs.current['hero'] = el; }}
+        data-theme="light"
+        className="relative min-h-screen flex items-center px-4 sm:px-6 lg:px-8 pt-16 overflow-hidden"
+      >
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl opacity-50" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-nomba-500/10 rounded-full blur-3xl opacity-50" />
+        </div>
 
         <div className="relative max-w-7xl mx-auto w-full py-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
-
-            {/* Left: headline + CTAs */}
             <div>
-               {/* Eyebrow */}
-               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/80 border border-slate-800 text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-8">
-                 <span className="w-1 h-1 rounded-full bg-brand-500" />
-                 Powered by Nomba 
-               </div>
-
-               {/* Headline */}
-               <h1 className="text-6xl sm:text-7xl lg:text-[6rem] font-black text-slate-50 leading-[1.0] tracking-tighter mb-6">
-                 Rent paid.<br />
-                 <span className="text-brand-500">No fraud.</span><br />
-                 Guaranteed.
-               </h1>
-
-              <p className="text-slate-400 text-lg leading-relaxed mb-10 max-w-md">
-                Your rent payment is securely held in escrow not sent directly to the landlord until their ownership documents are verified. Fake agents can't access your money, and if verification fails, you receive a full refund of every kobo.
-
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-nomba-500 text-slate-950 text-[10px] font-bold uppercase tracking-wider mb-8 shadow-sm">
+                <span className="w-1 h-1 rounded-full bg-slate-900" />
+                Powered by Nomba 
+              </div>
+              <h1 className="text-6xl sm:text-7xl lg:text-[6.5rem] font-black text-slate-900 leading-[0.9] tracking-tighter mb-8">
+                Rent paid.<br />
+                <span className="text-brand-500">No fraud.</span><br />
+                Guaranteed.
+              </h1>
+              <p className="text-slate-600 text-xl leading-relaxed mb-12 max-w-lg">
+                The gold standard for secure rentals in Nigeria. We protect your 
+                payments with enterprise-grade escrow, ensuring you only pay 
+                when the property is verified.
               </p>
-
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={handleCTA}
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold text-sm rounded-lg transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-base rounded-xl transition-all transform hover:scale-105 shadow-xl shadow-slate-200"
                 >
                   {user ? 'Browse Listings' : 'Find a Listing'}
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-5 h-5" />
                 </button>
                 <Link
                   to="/listings"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-transparent border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-slate-100 font-medium text-sm rounded-lg transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 font-medium text-base rounded-xl transition-all"
                 >
                   Browse without signing in
                 </Link>
               </div>
             </div>
-
-            {/* Right: animated escrow ledger */}
             <div className="flex justify-center lg:justify-end">
               <EscrowLedger />
             </div>
-
           </div>
         </div>
       </section>
 
-      {/* ── How it works ─────────────────────────────────────────────────────── */}
-      <section className="border-t border-slate-900 py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
-          <p className="text-xs font-mono text-slate-600 uppercase tracking-widest text-center mb-12">
-            How the protection works
-          </p>
+      {/* ── Value Prop (Dark) ─────────────────────────────────────────────────────── */}
+      <section 
+        ref={(el) => { sectionRefs.current['value'] = el; }}
+        data-theme="dark"
+        className="bg-slate-950 py-32 px-4 sm:px-6 lg:px-8"
+      >
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
+            <div className="relative">
+              <div className="absolute -top-20 -left-20 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl" />
+              <h2 className="text-4xl lg:text-6xl font-black text-white leading-tight mb-8 relative">
+                Banking the trust <br />
+                <span className="text-brand-500">missing in rentals.</span>
+              </h2>
+              <p className="text-slate-400 text-xl leading-relaxed mb-12 relative">
+                Rental fraud is an epidemic. Ghost agents and fake listings cost tenants millions. 
+                We've built a financial fortress. By partnering with Nomba, we ensure that funds 
+                stay in a secure vault until ownership is proven.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-500">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-lg">Instant Refund</h4>
+                    <p className="text-slate-400 text-sm">Verification fails? Money returns to you instantly.</p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-nomba-500/10 border border-nomba-500/20 flex items-center justify-center text-nomba-500">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-lg">Nomba Secured</h4>
+                    <p className="text-slate-400 text-sm">Funds held in regulated, industry-standard escrow.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 lg:p-12 backdrop-blur-sm">
+              <div className="space-y-10">
+                <div className="flex items-start gap-6">
+                  <span className="text-nomba-500 font-black text-3xl font-mono">01</span>
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-2">Secure Deposit</h3>
+                    <p className="text-slate-400 leading-relaxed">Deposit your rent into a dedicated vault. Your funds are temporarily locked and fully protected.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-6">
+                  <span className="text-nomba-500 font-black text-3xl font-mono">02</span>
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-2">Strict Audit</h3>
+                    <p className="text-slate-400 leading-relaxed">Our team manually verifies the property's legal title and the landlord's identity. No shortcuts.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-6">
+                  <span className="text-nomba-500 font-black text-3xl font-mono">03</span>
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-2">Precision Payout</h3>
+                    <p className="text-slate-400 leading-relaxed">Upon verification, the split is executed automatically. No manual requests, no delays.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-          {/* Three editorial columns separated by hairline dividers */}
-          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-800">
+      {/* ── How it Works (Light) ─────────────────────────────────────────────────────── */}
+      <section 
+        ref={(el) => { sectionRefs.current['how'] = el; }}
+        data-theme="light"
+        className="bg-white py-32 px-4 sm:px-6 lg:px-8"
+      >
+        <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-20">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-nomba-500 text-slate-950 text-xs font-bold uppercase tracking-widest mb-4 shadow-sm">
+                <span className="w-1 h-1 rounded-full bg-slate-900" />
+                The Protocol
+              </div>
+              <h2 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">How the protection works</h2>
+            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {HOW_IT_WORKS.map((item) => (
-              <div key={item.num} className="px-0 md:px-10 py-10 md:py-0 first:pl-0 last:pr-0">
-                <span className="text-xs font-mono text-slate-700 block mb-4">{item.num}</span>
-                <h3 className="text-2xl font-black text-slate-50 mb-3">{item.title}</h3>
-                <p className="text-slate-400 text-sm leading-relaxed">{item.body}</p>
+              <div key={item.num} className="relative p-8 rounded-3xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-xl transition-all duration-300 group">
+                <span className="text-sm font-mono font-bold text-slate-300 block mb-6 group-hover:text-brand-500 transition-colors">{item.num}</span>
+                <h3 className="text-2xl font-black text-slate-900 mb-4">{item.title}</h3>
+                <p className="text-slate-600 text-base leading-relaxed">{item.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Minimal CTA ──────────────────────────────────────────────────────── */}
-      <section className="border-t border-slate-900 py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-lg mx-auto text-center">
-          <p className="text-xs font-mono text-slate-600 uppercase tracking-widest mb-5">
-            Ready to move?
-          </p>
-          <h2 className="text-4xl font-black text-slate-50 mb-3">
-            Find your next home safely.
+      {/* ── Trust & Infrastructure (Dark) ─────────────────────────────────────────── */}
+      <section 
+        ref={(el) => { sectionRefs.current['infra'] = el; }}
+        data-theme="dark"
+        className="bg-slate-950 py-32 px-4 sm:px-6 lg:px-8 overflow-hidden"
+      >
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col lg:flex-row gap-24 items-center">
+            <div className="lg:w-1/2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-8">
+                Infrastructure
+              </div>
+              <h2 className="text-4xl lg:text-6xl font-black text-white leading-tight mb-8">
+                Built on Nomba's <br />
+                <span className="text-nomba-500">enterprise rails.</span>
+              </h2>
+              <p className="text-slate-400 text-xl leading-relaxed mb-12">
+                We don't just "promise" security. We leverage Nomba's proven financial 
+                infrastructure to handle every transaction. Your funds are held 
+                in regulated accounts, ensuring absolute safety.
+              </p>
+              <div className="p-8 bg-slate-900 border-l-4 border-nomba-500 rounded-r-2xl shadow-2xl">
+                <p className="text-slate-300 text-lg italic font-medium leading-relaxed">
+                  "By integrating RentVault with our payment layers, we're bringing 
+                  unprecedented transparency to the Nigerian rental market."
+                </p>
+                <p className="text-slate-500 text-sm mt-6 font-bold">— Nomba Engineering</p>
+              </div>
+            </div>
+            <div className="lg:w-1/2 grid grid-cols-2 gap-6">
+              <div className="p-8 rounded-3xl bg-slate-900 border border-slate-800 flex flex-col justify-between hover:border-nomba-500/30 transition-colors">
+                <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-nomba-500 mb-6">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white mb-2">Encrypted</h4>
+                  <p className="text-slate-400 text-sm">Bank-grade AES-256 encryption for all data.</p>
+                </div>
+              </div>
+              <div className="p-8 rounded-3xl bg-brand-500 flex flex-col justify-between text-slate-950">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-white mb-6">
+                  <Zap className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold mb-2">Instant</h4>
+                  <p className="text-slate-900/80 text-sm">Automated disbursement upon approval.</p>
+                </div>
+              </div>
+              <div className="p-8 rounded-3xl bg-brand-500 flex flex-col justify-between text-slate-950">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-white mb-6">
+                  <Scale className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold mb-2">Fair</h4>
+                  <p className="text-slate-900/80 text-sm">Agreed percentages are immutable.</p>
+                </div>
+              </div>
+              <div className="p-8 rounded-3xl bg-slate-900 border border-slate-800 flex flex-col justify-between hover:border-nomba-500/30 transition-colors">
+                <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-nomba-500 mb-6">
+                  <Eye className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white mb-2">Verified</h4>
+                  <p className="text-slate-400 text-sm">Manual human review for every property.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ (Light) ─────────────────────────────────────────────────────────── */}
+      <section 
+        ref={(el) => { sectionRefs.current['faq'] = el; }}
+        data-theme="light"
+        className="bg-white py-32 px-4 sm:px-6 lg:px-8 border-t border-slate-100"
+      >
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-4">
+              <HelpCircle className="w-3 h-3" />
+              Frequently Asked Questions
+            </div>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tight">Got questions? We have answers.</h2>
+          </div>
+          <div className="space-y-6">
+            {FAQS.map((faq, i) => (
+              <div key={i} className="p-6 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-lg transition-all duration-300">
+                <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-500" />
+                  {faq.q}
+                </h3>
+                <p className="text-slate-600 leading-relaxed pl-4 border-l-2 border-slate-200">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Final CTA (Light) ──────────────────────────────────────────────────────── */}
+      <section 
+        ref={(el) => { sectionRefs.current['cta'] = el; }}
+        data-theme="light"
+        className="bg-white py-32 px-4 sm:px-6 lg:px-8 border-t border-slate-100"
+      >
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-8">
+            Start Today
+          </div>
+          <h2 className="text-5xl lg:text-7xl font-black text-slate-900 mb-8 tracking-tighter">
+            Find your next home <br />
+            without the anxiety.
           </h2>
-          <p className="text-slate-400 text-base mb-10">
-            Browse listings. Pay with escrow protection. Move in with confidence.
+          <p className="text-slate-600 text-xl mb-12 max-w-xl mx-auto leading-relaxed">
+            Join thousands of tenants who move in with confidence. Secure your future home with RentVault.
           </p>
           <button
             onClick={handleCTA}
-            className="inline-flex items-center gap-2 px-8 py-4 bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold text-sm rounded-lg transition-colors"
+            className="inline-flex items-center gap-3 px-12 py-6 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xl rounded-2xl transition-all transform hover:scale-105 shadow-2xl shadow-slate-300"
           >
-            {user ? 'Browse Listings' : 'Get Started'}
-            <ArrowRight className="w-4 h-4" />
+            {user ? 'Browse Listings' : 'Start Searching'}
+            <ArrowRight className="w-6 h-6" />
           </button>
         </div>
       </section>
 
-      {/* Sign In Modal */}
       <SignInModal isOpen={signInModalOpen} onClose={() => setSignInModalOpen(false)} />
     </div>
   );
