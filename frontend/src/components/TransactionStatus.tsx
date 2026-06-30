@@ -164,13 +164,13 @@ export const TransactionStatus: React.FC = () => {
   const isRefundFlow = ['refund_initiated', 'refunded', 'refund_failed', 'verification_rejected', 'verification_timeout'].includes(tx.status);
   const isFailureState = ['disbursement_partial_failure', 'refund_failed'].includes(tx.status);
 
-  return (
-    <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <button onClick={() => navigate('/listings')} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 text-sm mb-6 transition-colors group">
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-          Browse Listings
-        </button>
+    return (
+      <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6 lg:px-8 bg-slate-50">
+        <div className="max-w-3xl mx-auto">
+          <button onClick={() => navigate('/listings')} className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-sm mb-8 transition-colors group">
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            Browse Listings
+          </button>
 
         {/* Connection indicator */}
         {connectionLost && (
@@ -205,35 +205,35 @@ export const TransactionStatus: React.FC = () => {
         )}
 
         {/* Status header */}
-        <div className="glass-panel rounded-2xl overflow-hidden mb-5">
-          <div className={`h-1.5 ${isRefundFlow ? 'bg-gradient-to-r from-orange-500 to-red-500' : 'bg-gradient-to-r from-brand-500 to-brand-400'}`} />
-          <div className="p-6">
-            <div className="flex items-start justify-between gap-4 mb-5">
+        <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden mb-8 shadow-sm">
+          <div className={`h-2 ${isRefundFlow ? 'bg-gradient-to-r from-orange-500 to-red-500' : 'bg-gradient-to-r from-brand-500 to-brand-400'}`} />
+          <div className="p-8">
+            <div className="flex items-start justify-between gap-4 mb-6">
               <div>
-                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Transaction ID</p>
-                <p className="font-mono text-sm text-slate-300 bg-slate-800/60 px-3 py-1.5 rounded-lg">{tx.transactionId}</p>
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Transaction ID</p>
+                <p className="font-mono text-sm text-slate-600 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg inline-block">{tx.transactionId}</p>
               </div>
-              <div className={`px-3 py-1.5 rounded-xl text-sm font-semibold ${statusInfo.bg} ${statusInfo.color} flex-shrink-0`}>
+              <div className={`px-4 py-2 rounded-2xl text-sm font-bold ${statusInfo.bg} ${statusInfo.color} flex-shrink-0 shadow-sm`}>
                 {statusInfo.label}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-slate-800/40 rounded-xl p-3">
-                <p className="text-xs text-slate-500 mb-1">Amount</p>
-                <p className="font-bold text-brand-400">{formatAmount(tx.amount)}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Amount</p>
+                <p className="font-mono font-black text-slate-900 text-lg">{formatAmount(tx.amount)}</p>
               </div>
-              <div className="bg-slate-800/40 rounded-xl p-3">
-                <p className="text-xs text-slate-500 mb-1">Paid</p>
-                <p className="text-sm font-semibold text-slate-200">{formatDate(tx.createdAt)}</p>
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Paid</p>
+                <p className="text-sm font-bold text-slate-700">{formatDate(tx.createdAt)}</p>
               </div>
-              <div className="bg-slate-800/40 rounded-xl p-3">
-                <p className="text-xs text-slate-500 mb-1">Updated</p>
-                <p className="text-sm font-semibold text-slate-200">{formatDate(tx.updatedAt)}</p>
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Updated</p>
+                <p className="text-sm font-bold text-slate-700">{formatDate(tx.updatedAt)}</p>
               </div>
-              <div className="bg-slate-800/40 rounded-xl p-3">
-                <p className="text-xs text-slate-500 mb-1">Split</p>
-                <p className="text-xs font-semibold text-slate-300">
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Split</p>
+                <p className="text-xs font-bold text-slate-600">
                   {tx.splitConfigSnapshot?.landlordPercentage}% / {tx.splitConfigSnapshot?.agentPercentage}% / {tx.splitConfigSnapshot?.platformPercentage}%
                 </p>
               </div>
@@ -243,23 +243,23 @@ export const TransactionStatus: React.FC = () => {
 
         {/* Progress stepper */}
         {!isRefundFlow && (
-          <div className="glass-panel rounded-2xl p-6 mb-5">
-            <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Payment Progress</h2>
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 mb-8 shadow-sm">
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-8">Payment Progress</h2>
             <div className="relative">
-              <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-slate-700/60" />
+              <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-slate-100" />
               {STATUS_STEPS.map((step, i) => {
                 const Icon = step.icon;
                 const done = i < stepIndex;
                 const active = i === stepIndex;
                 return (
-                  <div key={step.key} className={`relative flex items-start gap-4 pb-5 last:pb-0 ${i < STATUS_STEPS.length - 1 ? '' : ''}`}>
-                    <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border-2 transition-all ${done ? 'bg-brand-500 border-brand-500' : active ? 'bg-slate-800 border-brand-500' : 'bg-slate-800 border-slate-600'}`}>
-                      {done ? <CheckCircle2 className="w-5 h-5 text-white" /> : <Icon className={`w-4 h-4 ${active ? 'text-brand-400' : 'text-slate-500'}`} />}
+                  <div key={step.key} className={`relative flex items-start gap-4 pb-8 last:pb-0`}>
+                    <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border-2 transition-all ${done ? 'bg-brand-500 border-brand-500' : active ? 'bg-white border-brand-500 shadow-sm' : 'bg-white border-slate-200'}`}>
+                      {done ? <CheckCircle2 className="w-5 h-5 text-white" /> : <Icon className={`w-4 h-4 ${active ? 'text-brand-500' : 'text-slate-300'}`} />}
                     </div>
                     <div className="pt-2">
-                      <p className={`text-sm font-semibold ${done || active ? 'text-slate-100' : 'text-slate-500'}`}>{step.label}</p>
+                      <p className={`text-sm font-bold ${done || active ? 'text-slate-900' : 'text-slate-400'}`}>{step.label}</p>
                       {active && tx.status === 'funds_held' && countdown && (
-                        <div className={`flex items-center gap-1.5 mt-1 text-xs font-medium ${countdown.urgent ? 'text-orange-400' : 'text-brand-400'}`}>
+                        <div className={`flex items-center gap-1.5 mt-1 text-xs font-bold ${countdown.urgent ? 'text-orange-500' : 'text-brand-500'}`}>
                           <Clock className="w-3 h-3" />
                           {countdown.text} for verification
                         </div>
@@ -274,21 +274,21 @@ export const TransactionStatus: React.FC = () => {
 
         {/* Refund flow */}
         {isRefundFlow && (
-          <div className="glass-panel rounded-2xl p-6 mb-5">
-            <div className="flex items-center gap-2 mb-4">
-              <RotateCcw className="w-5 h-5 text-orange-400" />
-              <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Refund Status</h2>
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 mb-8 shadow-sm">
+            <div className="flex items-center gap-2 mb-6">
+              <RotateCcw className="w-5 h-5 text-orange-500" />
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Refund Status</h2>
             </div>
             <div className="space-y-3">
               {REFUND_STEPS.map((step, i) => {
                 const refundStepIdx = ['refund_initiated', 'refunded'].indexOf(tx.status);
                 const done = i <= refundStepIdx;
                 return (
-                  <div key={step.key} className={`flex items-center gap-3 p-3 rounded-xl ${done ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-slate-800/40'}`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${done ? 'bg-orange-500' : 'bg-slate-700'}`}>
-                      {done ? <CheckCircle2 className="w-3.5 h-3.5 text-white" /> : <div className="w-2 h-2 rounded-full bg-slate-500" />}
+                  <div key={step.key} className={`flex items-center gap-3 p-4 rounded-2xl ${done ? 'bg-orange-50 border border-orange-100' : 'bg-slate-50 border border-slate-100'}`}>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${done ? 'bg-orange-500' : 'bg-slate-300'}`}>
+                      {done ? <CheckCircle2 className="w-3.5 h-3.5 text-white" /> : <div className="w-2 h-2 rounded-full bg-slate-400" />}
                     </div>
-                    <span className={`text-sm font-medium ${done ? 'text-orange-300' : 'text-slate-500'}`}>{step.label}</span>
+                    <span className={`text-sm font-bold ${done ? 'text-orange-700' : 'text-slate-500'}`}>{step.label}</span>
                   </div>
                 );
               })}
@@ -298,30 +298,30 @@ export const TransactionStatus: React.FC = () => {
 
         {/* Disbursements breakdown */}
         {disbursements.length > 0 && (
-          <div className="glass-panel rounded-2xl p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-5 h-5 text-brand-400" />
-              <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Disbursement Breakdown</h2>
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm">
+            <div className="flex items-center gap-2 mb-6">
+              <TrendingUp className="w-5 h-5 text-brand-500" />
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Disbursement Breakdown</h2>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {disbursements.map((d) => {
-                const statusColor = d.status === 'disbursed' ? 'text-brand-400' : d.status.includes('failed') ? 'text-red-400' : 'text-yellow-400';
+                const statusColor = d.status === 'disbursed' ? 'text-brand-600' : d.status.includes('failed') ? 'text-red-600' : 'text-yellow-600';
                 const statusIcon = d.status === 'disbursed' ? CheckCircle2 : d.status.includes('failed') ? AlertCircle : Loader2;
                 const StatusIcon = statusIcon;
                 return (
-                  <div key={d.id} className={`flex items-center justify-between p-4 rounded-xl ${d.status.includes('failed') ? 'bg-red-500/10 border border-red-500/20' : 'bg-slate-800/40'}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${d.recipientType === 'landlord' ? 'bg-purple-500/20' : d.recipientType === 'agent' ? 'bg-orange-500/20' : 'bg-blue-500/20'}`}>
-                        <User className={`w-4 h-4 ${d.recipientType === 'landlord' ? 'text-purple-400' : d.recipientType === 'agent' ? 'text-orange-400' : 'text-blue-400'}`} />
+                  <div key={d.id} className={`flex items-center justify-between p-5 rounded-2xl ${d.status.includes('failed') ? 'bg-red-50 border border-red-100' : 'bg-slate-50 border border-slate-100'}`}>
+                    <div className="flex items-center gap-4">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${d.recipientType === 'landlord' ? 'bg-purple-100' : d.recipientType === 'agent' ? 'bg-orange-100' : 'bg-blue-100'}`}>
+                        <User className={`w-5 h-5 ${d.recipientType === 'landlord' ? 'text-purple-600' : d.recipientType === 'agent' ? 'text-orange-600' : 'text-blue-600'}`} />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-slate-200 capitalize">{d.recipientType}</p>
-                        {d.nombaTransferReference && <p className="text-xs text-slate-500 font-mono">{d.nombaTransferReference}</p>}
+                        <p className="text-sm font-bold text-slate-900 capitalize">{d.recipientType}</p>
+                        {d.nombaTransferReference && <p className="text-xs text-slate-400 font-mono">{d.nombaTransferReference}</p>}
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-slate-100">{formatAmount(d.amount)}</p>
-                      <div className={`flex items-center gap-1 text-xs font-medium ${statusColor} justify-end`}>
+                      <p className="font-mono font-black text-slate-900 text-lg">{formatAmount(d.amount)}</p>
+                      <div className={`flex items-center gap-1 text-xs font-bold ${statusColor} justify-end`}>
                         <StatusIcon className={`w-3 h-3 ${d.status === 'transfer_pending' ? 'animate-spin' : ''}`} />
                         {d.status.replace(/_/g, ' ')}
                       </div>

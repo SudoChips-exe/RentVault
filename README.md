@@ -35,9 +35,9 @@ Built for hackathon demo in 2-3 days.
 - Nomba API (Checkout, Transfers, Refunds)
 
 **Frontend:**
-- React + Vite + TypeScript (Public site)
-- Next.js + TypeScript (Protected dashboards)
-- Tailwind CSS (Styling)
+- React + Vite + TypeScript (Public site) - Fully redesigned with a "funded fintech" aesthetic, featuring a signature alternating light/dark theme and professional typography.
+- Next.js + TypeScript (Protected dashboards) - Redesigned as a high-density operations console sharing the RentVault brand tokens.
+- Tailwind CSS (Styling) - Using a shared brand palette (Emerald/Nomba) across both applications.
 - Firebase SDK (Client-side integration)
 
 ### System Flow

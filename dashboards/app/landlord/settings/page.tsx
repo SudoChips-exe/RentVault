@@ -29,51 +29,51 @@ export default function SettingsPage() {
     }
   };
 
-  return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-100">Settings</h1>
-        <p className="text-sm text-slate-400">Configure your account for receiving escrow payouts.</p>
-      </div>
-
-      {error && (
-        <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-300 text-sm">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="flex items-start gap-3 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-sm">
-          <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-          Nomba Account ID saved successfully.
-        </div>
-      )}
-
-      <div className="bg-slate-900/60 border border-slate-800/60 rounded-2xl p-6 shadow-lg space-y-6">
+    return (
+      <div className="max-w-2xl mx-auto space-y-8">
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">Nomba Account ID</label>
-          <p className="text-xs text-slate-500 mb-3">
-            Your Nomba account ID is used to receive escrow payouts when a tenant&apos;s rent is verified and disbursed.
-          </p>
-          <input
-            type="text"
-            value={accountId}
-            onChange={(e) => setAccountId(e.target.value)}
-            placeholder="Enter your Nomba Account ID"
-            className="w-full bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-          />
+          <h1 className="text-4xl font-black text-slate-900 tracking-tighter">Settings</h1>
+          <p className="text-slate-500 text-sm mt-1">Configure your account for receiving escrow payouts.</p>
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-700 text-white font-semibold rounded-xl transition-colors"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {saving ? 'Saving...' : 'Save'}
-        </button>
+        {error && (
+          <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-medium">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="flex items-start gap-3 p-4 bg-brand-50 border border-brand-100 rounded-2xl text-brand-700 text-sm font-medium">
+            <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+            Nomba Account ID saved successfully.
+          </div>
+        )}
+
+        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm space-y-8">
+          <div className="space-y-4">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nomba Account ID</label>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Your Nomba account ID is used to receive escrow payouts when a tenant&apos;s rent is verified and disbursed.
+            </p>
+            <input
+              type="text"
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              placeholder="Enter your Nomba Account ID"
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all font-mono font-bold"
+            />
+          </div>
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-brand-500 hover:bg-brand-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black rounded-2xl transition-all active:scale-95 shadow-lg shadow-brand-500/20"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }

@@ -68,55 +68,55 @@ function AdminRefundsContent() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-8 max-w-6xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-slate-100">Manual Refunds</h1>
-        <p className="text-sm text-slate-400">Process refunds for rejected or timed-out verifications.</p>
+        <h1 className="text-4xl font-black text-slate-900 tracking-tighter">Manual Refunds</h1>
+        <p className="text-slate-500 text-sm mt-1">Process refunds for rejected or timed-out verifications.</p>
       </div>
 
       {error && (
-        <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-300 text-sm">
+        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-medium">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           {error}
         </div>
       )}
 
-      <div className="bg-slate-900/60 border border-slate-800/60 rounded-2xl overflow-hidden shadow-lg">
-        <div className="px-6 py-4 border-b border-slate-800/60 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-100 flex items-center gap-2">
-            <RotateCcw className="w-4 h-4 text-orange-400" />
+      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white">
+          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <RotateCcw className="w-4 h-4 text-orange-500" />
             Refund Queue
           </h2>
-          <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs font-medium">
+          <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold border border-slate-200">
             {queue.length} Pending
           </span>
         </div>
         
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-slate-900/40 text-slate-400">
+            <thead className="bg-slate-50 text-slate-500">
               <tr>
-                <th className="px-6 py-3 font-medium">Transaction ID</th>
-                <th className="px-6 py-3 font-medium">Amount</th>
-                <th className="px-6 py-3 font-medium">Reason</th>
-                <th className="px-6 py-3 font-medium">Last Updated</th>
-                <th className="px-6 py-3 font-medium text-right">Action</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Transaction ID</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Amount</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Reason</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Last Updated</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px] text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300">
+            <tbody className="divide-y divide-slate-100 text-slate-600">
               {queue.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                  <td colSpan={5} className="px-6 py-16 text-center text-slate-400 font-medium">
                     No pending refunds.
                   </td>
                 </tr>
               ) : (
                 queue.map((t) => (
-                  <tr key={t.id} className={`hover:bg-slate-800/40 transition-colors ${defaultTx === t.id ? 'bg-slate-800/60' : ''}`}>
-                    <td className="px-6 py-4 font-mono text-xs text-slate-400">{t.id}</td>
-                    <td className="px-6 py-4 font-bold text-slate-200">{formatAmount(t.amount)}</td>
+                  <tr key={t.id} className={`hover:bg-slate-50 transition-colors ${defaultTx === t.id ? 'bg-brand-50/50' : ''}`}>
+                    <td className="px-6 py-4 font-mono text-xs text-slate-500">{t.id}</td>
+                    <td className="px-6 py-4 font-mono font-bold text-slate-900">{formatAmount(t.amount)}</td>
                     <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20 text-xs font-semibold uppercase tracking-wider">
+                      <span className="px-3 py-1 rounded-full bg-orange-50 text-orange-600 border border-orange-100 text-[10px] font-bold uppercase tracking-wider">
                         {t.status.replace('verification_', '')}
                       </span>
                     </td>
@@ -125,7 +125,7 @@ function AdminRefundsContent() {
                       <button
                         onClick={() => handleRefund(t.id)}
                         disabled={actionLoading === t.id}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-slate-100 font-medium rounded-xl transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-orange-500 hover:text-orange-600 text-slate-700 font-bold rounded-xl transition-all disabled:opacity-50 active:scale-95 shadow-sm"
                       >
                         {actionLoading === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                         Process Refund

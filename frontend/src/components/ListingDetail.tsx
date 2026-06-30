@@ -141,156 +141,156 @@ export const ListingDetail: React.FC = () => {
 
   if (!listing) return null;
 
-  return (
-    <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+    return (
+      <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6 lg:px-8 bg-slate-50">
       <div className="max-w-4xl mx-auto">
         {/* Breadcrumb */}
         <button
           onClick={() => navigate('/listings')}
-          className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 text-sm mb-6 transition-colors group"
+          className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-sm mb-8 transition-colors group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
           All listings
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left: Listing info */}
-          <div className="lg:col-span-2 space-y-5">
-            <div className="glass-panel rounded-2xl overflow-hidden">
-              <div className="h-2 bg-gradient-to-r from-brand-500 via-brand-400 to-green-400" />
-              <div className="p-6">
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-500/20 to-brand-600/10 border border-brand-500/20 flex items-center justify-center flex-shrink-0">
-                    <Building2 className="w-7 h-7 text-brand-400" />
+          <div className="lg:col-span-2 space-y-8">
+            <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+              <div className="h-2 bg-brand-500" />
+              <div className="p-8">
+                <div className="flex items-start gap-6 mb-8">
+                  <div className="w-16 h-16 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center flex-shrink-0">
+                    <Building2 className="w-8 h-8 text-brand-500" />
                   </div>
                   <div>
-                    <span className="text-xs font-semibold text-brand-400 uppercase tracking-widest">Active Listing</span>
-                    <h1 className="text-2xl font-extrabold text-slate-100 mt-1">{listing.propertyName}</h1>
-                    <div className="flex items-center gap-1.5 text-slate-400 text-sm mt-1">
-                      <MapPin className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-bold text-brand-600 uppercase tracking-widest">Active Listing</span>
+                    <h1 className="text-4xl font-black text-slate-900 mt-1 tracking-tighter leading-none">{listing.propertyName}</h1>
+                    <div className="flex items-center gap-1.5 text-slate-500 text-sm mt-2">
+                      <MapPin className="w-4 h-4" />
                       {listing.address}
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-800/40 rounded-xl p-4">
-                    <p className="text-xs text-slate-500 mb-1 uppercase tracking-wider">Monthly Rent</p>
-                    <p className="text-2xl font-extrabold text-brand-400">{formatAmount(listing.monthlyRent)}</p>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1">Monthly Rent</p>
+                    <p className="text-3xl font-mono font-black text-slate-900">{formatAmount(listing.monthlyRent)}</p>
                   </div>
-                  <div className="bg-slate-800/40 rounded-xl p-4">
-                    <p className="text-xs text-slate-500 mb-1 uppercase tracking-wider">Listed On</p>
-                    <p className="text-sm font-semibold text-slate-200">{formatDate(listing.createdAt)}</p>
+                  <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1">Listed On</p>
+                    <p className="text-lg font-semibold text-slate-700 mt-1">{formatDate(listing.createdAt)}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* People involved */}
-            <div className="glass-panel rounded-2xl p-6">
-              <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Property Contacts</h2>
-              <div className="space-y-3">
-                {landlord && (
-                  <div className="flex items-center gap-3 p-3 bg-slate-800/40 rounded-xl">
-                    <div className="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                      <User className="w-4 h-4 text-purple-400" />
+              {/* People involved */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm">
+                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-6">Property Contacts</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {landlord && (
+                    <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                      <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                        <User className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Landlord</p>
+                        <p className="text-sm font-bold text-slate-900">{landlord.displayName}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Landlord</p>
-                      <p className="text-sm font-semibold text-slate-200">{landlord.displayName}</p>
-                    </div>
-                  </div>
-                )}
-                {agent && (
-                  <div className="flex items-center gap-3 p-3 bg-slate-800/40 rounded-xl">
-                    <div className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center">
-                      <User className="w-4 h-4 text-orange-400" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Agent</p>
-                      <p className="text-sm font-semibold text-slate-200">{agent.displayName}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Payment card */}
-          <div className="space-y-4">
-            <div className="glass-panel rounded-2xl p-6 sticky top-24">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="w-4 h-4 text-brand-400" />
-                <span className="text-xs font-semibold text-brand-400 uppercase tracking-wider">Escrow Protected</span>
-              </div>
-              <p className="text-slate-400 text-xs leading-relaxed mb-5">
-                Your payment is held securely in escrow until landlord verification is approved.
-              </p>
-
-              <div className="border-t border-slate-700/60 pt-4 mb-5">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-slate-400">Monthly Rent</span>
-                  <span className="text-slate-200 font-semibold">{formatAmount(listing.monthlyRent)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Escrow Fee</span>
-                  <span className="text-brand-400 font-semibold">Included</span>
-                </div>
-              </div>
-
-              {/* Error display */}
-              {error && (
-                <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl mb-4 text-sm text-red-300">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  {error}
-                </div>
-              )}
-
-              {/* Success state */}
-              {checkoutSuccess ? (
-                <div className="space-y-3">
-                  <div className="flex items-start gap-2 p-3 bg-brand-500/10 border border-brand-500/20 rounded-xl text-sm text-brand-300">
-                    <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    Checkout opened! Complete payment in the Nomba window.
-                  </div>
-                  <button
-                    onClick={() => window.open(checkoutSuccess.url, '_blank')}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-sm text-slate-200 rounded-xl transition-colors"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Reopen Checkout
-                  </button>
-                  <button
-                    onClick={() => navigate(`/transactions/${checkoutSuccess.transactionId}`)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold rounded-xl transition-colors"
-                  >
-                    <Clock className="w-4 h-4" />
-                    Track Transaction
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={handlePayRent}
-                  disabled={checkoutLoading || authLoading || listing.status !== 'active'}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-400 hover:to-brand-500 disabled:from-slate-700 disabled:to-slate-700 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:shadow-brand-500/50 disabled:shadow-none transition-all duration-200 active:scale-95 disabled:cursor-not-allowed"
-                >
-                  {checkoutLoading ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
-                  ) : !user ? (
-                    <><CreditCard className="w-4 h-4" /> Sign in to Pay Rent</>
-                  ) : (
-                    <><CreditCard className="w-4 h-4" /> Pay {formatAmount(listing.monthlyRent)}</>
                   )}
-                </button>
-              )}
-
-              {!user && (
-                <p className="text-center text-xs text-slate-500 mt-3">
-                  You'll be asked to sign in with Google.
-                </p>
-              )}
-            </div>
+                  {agent && (
+                    <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                      <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                        <User className="w-5 h-5 text-orange-600" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Agent</p>
+                        <p className="text-sm font-bold text-slate-900">{agent.displayName}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
           </div>
+
+            {/* Right: Payment card */}
+            <div className="space-y-6">
+              <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xl shadow-slate-200/50 sticky top-24">
+                <div className="flex items-center gap-2 mb-3">
+                  <Shield className="w-4 h-4 text-brand-500" />
+                  <span className="text-[10px] font-bold text-brand-600 uppercase tracking-widest">Escrow Protected</span>
+                </div>
+                <p className="text-slate-500 text-xs leading-relaxed mb-6">
+                  Your payment is held securely in escrow until landlord verification is approved.
+                </p>
+
+                <div className="border-t border-slate-100 pt-5 mb-6">
+                  <div className="flex justify-between text-sm mb-3">
+                    <span className="text-slate-500">Monthly Rent</span>
+                    <span className="text-slate-900 font-mono font-bold">{formatAmount(listing.monthlyRent)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Escrow Fee</span>
+                    <span className="text-brand-600 font-bold">Included</span>
+                  </div>
+                </div>
+
+                {/* Error display */}
+                {error && (
+                  <div className="flex items-start gap-2 p-4 bg-red-50 border border-red-100 rounded-2xl mb-6 text-sm text-red-600">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    {error}
+                  </div>
+                )}
+
+                {/* Success state */}
+                {checkoutSuccess ? (
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2 p-4 bg-brand-50 border border-brand-100 rounded-2xl text-sm text-brand-700">
+                      <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      Checkout opened! Complete payment in the Nomba window.
+                    </div>
+                    <button
+                      onClick={() => window.open(checkoutSuccess.url, '_blank')}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-sm font-bold text-slate-700 rounded-2xl transition-colors"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Reopen Checkout
+                    </button>
+                    <button
+                      onClick={() => navigate(`/transactions/${checkoutSuccess.transactionId}`)}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-2xl transition-colors shadow-lg shadow-brand-500/20"
+                    >
+                      <Clock className="w-4 h-4" />
+                      Track Transaction
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handlePayRent}
+                    disabled={checkoutLoading || authLoading || listing.status !== 'active'}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-brand-500 hover:bg-brand-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black rounded-2xl shadow-lg shadow-brand-500/30 hover:shadow-brand-500/50 disabled:shadow-none transition-all duration-200 active:scale-95 disabled:cursor-not-allowed text-lg"
+                  >
+                    {checkoutLoading ? (
+                      <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
+                    ) : !user ? (
+                      <><CreditCard className="w-5 h-5" /> Sign in to Pay Rent</>
+                    ) : (
+                      <><CreditCard className="w-5 h-5" /> Pay {formatAmount(listing.monthlyRent)}</>
+                    )}
+                  </button>
+                )}
+
+                {!user && (
+                  <p className="text-center text-[10px] text-slate-400 mt-4">
+                    You'll be asked to sign in with Google.
+                  </p>
+                )}
+              </div>
+            </div>
         </div>
       </div>
     </div>

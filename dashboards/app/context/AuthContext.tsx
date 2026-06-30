@@ -23,6 +23,7 @@ interface AuthContextType {
   user: UserProfile | null;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
+  signingIn: boolean;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   switchRole: (role: 'tenant' | 'landlord' | 'agent' | 'admin') => Promise<void>;

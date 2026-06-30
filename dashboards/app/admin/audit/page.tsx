@@ -56,75 +56,75 @@ export default function AdminAuditLogs() {
     );
   }
 
-  return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-100">Audit Logs</h1>
-          <p className="text-sm text-slate-400">System-wide immutable record of critical actions.</p>
+    return (
+      <div className="space-y-8 max-w-6xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tighter">Audit Logs</h1>
+            <p className="text-slate-500 text-sm mt-1">System-wide immutable record of critical actions.</p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-bold rounded-2xl transition-all shadow-sm disabled:opacity-50 active:scale-95"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
 
-      {error && (
-        <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-300 text-sm">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-medium">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            {error}
+          </div>
+        )}
 
-      <div className="bg-slate-900/60 border border-slate-800/60 rounded-2xl overflow-hidden shadow-lg h-[70vh] flex flex-col">
-        <div className="px-6 py-4 border-b border-slate-800/60 flex items-center justify-between bg-slate-900">
-          <h2 className="text-base font-semibold text-slate-100 flex items-center gap-2">
-            <ScrollText className="w-4 h-4 text-emerald-400" />
-            Action History
-          </h2>
-        </div>
-        
-        <div className="flex-1 overflow-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-slate-900/40 text-slate-400 sticky top-0 z-10 backdrop-blur-xl">
-              <tr>
-                <th className="px-6 py-3 font-medium w-48">Timestamp</th>
-                <th className="px-6 py-3 font-medium">Action</th>
-                <th className="px-6 py-3 font-medium">Target ID</th>
-                <th className="px-6 py-3 font-medium">Performed By</th>
-                <th className="px-6 py-3 font-medium">Details</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300">
-              {logs.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm h-[70vh] flex flex-col">
+          <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <ScrollText className="w-4 h-4 text-brand-500" />
+              Action History
+            </h2>
+          </div>
+          
+          <div className="flex-1 overflow-auto">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-slate-50 text-slate-500 sticky top-0 z-10 backdrop-blur-sm">
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                    No audit logs available.
-                  </td>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px] w-48">Timestamp</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Action</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Target ID</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Performed By</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-[10px]">Details</th>
                 </tr>
-              ) : (
-                logs.map((l) => (
-                  <tr key={l.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="px-6 py-4 text-slate-400">{formatDate(l.createdAt)}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold uppercase tracking-wider">
-                        {l.action}
-                      </span>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-600">
+                {logs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-24 text-center text-slate-400 font-medium">
+                      No audit logs available.
                     </td>
-                    <td className="px-6 py-4 font-mono text-xs text-slate-400">{l.targetId}</td>
-                    <td className="px-6 py-4 font-mono text-xs text-emerald-400">{l.performedBy}</td>
-                    <td className="px-6 py-4 whitespace-normal text-xs text-slate-500 max-w-md">{l.details}</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  logs.map((l) => (
+                    <tr key={l.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 text-slate-500">{formatDate(l.createdAt)}</td>
+                      <td className="px-6 py-4">
+                        <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider border border-slate-200">
+                          {l.action}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 font-mono text-xs text-slate-500">{l.targetId}</td>
+                      <td className="px-6 py-4 font-mono text-xs text-brand-600 font-bold">{l.performedBy}</td>
+                      <td className="px-6 py-4 whitespace-normal text-xs text-slate-500 max-w-md">{l.details}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }

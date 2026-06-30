@@ -108,103 +108,105 @@ export default function VerificationPage() {
     );
   }
 
-  return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-100">Submit Verification</h1>
-        <p className="text-sm text-slate-400">Upload property documents to claim escrowed funds.</p>
-      </div>
-
-      {pendingTx.length === 0 ? (
-        <div className="bg-slate-900/60 border border-slate-800/60 rounded-2xl p-12 text-center shadow-lg">
-          <div className="w-16 h-16 rounded-full bg-slate-800/60 flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 className="w-8 h-8 text-emerald-400" />
-          </div>
-          <h2 className="text-lg font-semibold text-slate-200">You're all caught up!</h2>
-          <p className="text-slate-400 mt-2 text-sm">There are no pending transactions requiring verification at this time.</p>
+    return (
+      <div className="max-w-3xl mx-auto space-y-8">
+        <div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tighter">Submit Verification</h1>
+          <p className="text-slate-500 text-sm mt-1">Upload property documents to claim escrowed funds.</p>
         </div>
-      ) : (
-        <div className="bg-slate-900/60 border border-slate-800/60 rounded-2xl p-6 shadow-lg space-y-6">
-          
-          {error && (
-            <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-300 text-sm">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              {error}
-            </div>
-          )}
 
-          {success && (
-            <div className="flex items-start gap-3 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-sm">
-              <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-              Verification submitted successfully. An admin will review it shortly.
+        {pendingTx.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center shadow-sm">
+            <div className="w-16 h-16 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-8 h-8 text-brand-500" />
             </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Select Transaction</label>
-            <select
-              value={selectedTx}
-              onChange={(e) => setSelectedTx(e.target.value)}
-              className="w-full bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-            >
-              <option value="" disabled>Select a pending transaction...</option>
-              {pendingTx.map(t => {
-                const cd = formatCountdown(t.verificationDeadline);
-                return (
-                  <option key={t.id} value={t.id}>
-                    {t.id} - {formatAmount(t.amount)} ({cd.text})
-                  </option>
-                );
-              })}
-            </select>
+            <h2 className="text-lg font-bold text-slate-900">You're all caught up!</h2>
+            <p className="text-slate-500 mt-2 text-sm">There are no pending transactions requiring verification at this time.</p>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Upload Document</label>
-            <div className="border-2 border-dashed border-slate-700 hover:border-emerald-500/50 rounded-xl p-8 transition-colors text-center bg-slate-800/30">
-              {file ? (
-                <div className="flex items-center justify-between bg-slate-800 p-3 rounded-lg border border-slate-700">
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <FileText className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-                    <span className="text-sm text-slate-300 truncate">{file.name}</span>
-                  </div>
-                  <button onClick={() => setFile(null)} disabled={uploading} className="p-1 hover:bg-slate-700 rounded-md">
-                    <X className="w-4 h-4 text-slate-400 hover:text-red-400" />
-                  </button>
-                </div>
-              ) : (
-                <label className="cursor-pointer flex flex-col items-center">
-                  <Upload className="w-8 h-8 text-slate-500 mb-3" />
-                  <span className="text-sm text-slate-300 font-medium bg-slate-800 px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors">Select File</span>
-                  <span className="text-xs text-slate-500 mt-2">PDF, JPG, PNG up to 5MB</span>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  />
-                </label>
-              )}
-            </div>
-          </div>
-
-          <button
-            onClick={handleUpload}
-            disabled={!file || !selectedTx || uploading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-700 text-white font-semibold rounded-xl transition-colors relative overflow-hidden"
-          >
-            {uploading ? (
-              <>
-                <div className="absolute left-0 top-0 bottom-0 bg-emerald-400/30" style={{ width: `${progress}%` }} />
-                <Loader2 className="w-4 h-4 animate-spin relative z-10" />
-                <span className="relative z-10">Uploading {Math.round(progress)}%</span>
-              </>
-            ) : (
-              'Submit Verification'
+        ) : (
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm space-y-8">
+            
+            {error && (
+              <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-medium">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                {error}
+              </div>
             )}
-          </button>
+
+            {success && (
+              <div className="flex items-start gap-3 p-4 bg-brand-50 border border-brand-100 rounded-2xl text-brand-700 text-sm font-medium">
+                <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                Verification submitted successfully. An admin will review it shortly.
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select Transaction</label>
+              <select
+                value={selectedTx}
+                onChange={(e) => setSelectedTx(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all font-medium"
+              >
+                <option value="" disabled>Select a pending transaction...</option>
+                {pendingTx.map(t => {
+                  const cd = formatCountdown(t.verificationDeadline);
+                  return (
+                    <option key={t.id} value={t.id}>
+                      {t.id} - {formatAmount(t.amount)} ({cd.text})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Upload Document</label>
+              <div className="border-2 border-dashed border-slate-200 hover:border-brand-500/50 rounded-3xl p-10 transition-colors text-center bg-slate-50">
+                {file ? (
+                  <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <FileText className="w-5 h-5 text-brand-500 flex-shrink-0" />
+                      <span className="text-sm text-slate-700 font-medium truncate">{file.name}</span>
+                    </div>
+                    <button onClick={() => setFile(null)} disabled={uploading} className="p-1 hover:bg-slate-100 rounded-full transition-colors">
+                      <X className="w-4 h-4 text-slate-400 hover:text-red-500" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="cursor-pointer flex flex-col items-center">
+                    <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center mb-3 shadow-sm">
+                      <Upload className="w-6 h-6 text-slate-400" />
+                    </div>
+                    <span className="text-sm text-slate-700 font-bold">Select File</span>
+                    <span className="text-xs text-slate-400 mt-1">PDF, JPG, PNG up to 5MB</span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={handleUpload}
+              disabled={!file || !selectedTx || uploading}
+              className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-brand-500 hover:bg-brand-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black rounded-2xl transition-all active:scale-95 shadow-lg shadow-brand-500/30 relative overflow-hidden"
+            >
+              {uploading ? (
+                <>
+                  <div className="absolute left-0 top-0 bottom-0 bg-brand-400/30 transition-all duration-300" style={{ width: `${progress}%` }} />
+                  <Loader2 className="w-5 h-5 animate-spin relative z-10" />
+                  <span className="relative z-10">Uploading {Math.round(progress)}%</span>
+                </>
+              ) : (
+                'Submit Verification'
+              )}
+            </button>
+          </div>
         </div>
       )}
-    </div>
-  );
-}
+    );
+  }

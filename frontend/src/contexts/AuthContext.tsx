@@ -23,6 +23,7 @@ interface AuthContextType {
   user: UserProfile | null;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
+  signingIn: boolean;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   switchRole: (role: 'tenant' | 'landlord' | 'agent' | 'admin') => Promise<void>;
@@ -35,6 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [signingIn, setSigningIn] = useState(false);
 
   useEffect(() => {
     console.log('AuthContext - Firebase User:', firebaseUser);
@@ -81,12 +83,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signInWithGoogle = async () => {
+    setSigningIn(true);
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
     } catch (error) {
       console.error('[AUTH_CONTEXT] Google sign-in failed:', error);
       throw error;
+    } finally {
+      setSigningIn(false);
     }
   };
 
@@ -136,6 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         firebaseUser,
         loading,
+        signingIn,
         signInWithGoogle,
         logout,
         switchRole,
