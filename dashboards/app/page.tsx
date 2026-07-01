@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from './context/AuthContext';
-import { Building2, Loader2, ArrowRight } from 'lucide-react';
+import { Building2, Loader2, ArrowRight, Home as HomeIcon, Lock } from 'lucide-react';
 
 export default function Home() {
   const { user, loading, signInWithGoogle } = useAuth();
@@ -15,10 +15,8 @@ export default function Home() {
         router.push('/admin');
       } else if (user.role === 'landlord' || user.role === 'agent') {
         router.push('/landlord');
-      } else {
-        // User is a tenant - they shouldn't be in the dashboard
-        // We could redirect them to the public site or show a message
-        console.warn('User has tenant role and cannot access dashboard');
+      } else if (user.role === 'tenant') {
+        router.push('/tenant');
       }
     }
   }, [user, loading, router]);
@@ -44,19 +42,31 @@ export default function Home() {
           
           <h1 className="text-3xl font-black text-slate-900 mb-2 tracking-tighter">Welcome Back</h1>
           <p className="text-slate-500 text-sm mb-8 leading-relaxed">
-            Sign in to access the RentVault landlord and admin dashboard.
+            Sign in to access your RentVault dashboard. New here? Choose the account type below - it&apos;s permanent.
           </p>
 
-           <button
-              onClick={signInWithGoogle}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-black rounded-2xl shadow-lg shadow-brand-500/30 transition-all duration-200 active:scale-95 hover:scale-[1.02]"
-            >
-             Sign in with Google
-             <ArrowRight className="w-4 h-4" />
-           </button>
-           
-           <div className="mt-6 pt-6 border-t border-slate-100 text-xs text-slate-400">
-             Secure authentication powered by Firebase
+           <div className="space-y-3">
+             <button
+                onClick={() => signInWithGoogle('tenant')}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-black rounded-2xl shadow-lg shadow-brand-500/30 transition-all duration-200 active:scale-95 hover:scale-[1.02]"
+              >
+               <HomeIcon className="w-4 h-4" />
+               Sign in as Tenant
+               <ArrowRight className="w-4 h-4" />
+             </button>
+             <button
+                onClick={() => signInWithGoogle('landlord')}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-2xl shadow-lg shadow-slate-300 transition-all duration-200 active:scale-95 hover:scale-[1.02]"
+              >
+               <Building2 className="w-4 h-4" />
+               Sign in as Landlord
+               <ArrowRight className="w-4 h-4" />
+             </button>
+           </div>
+
+           <div className="mt-6 pt-6 border-t border-slate-100 text-xs text-slate-400 flex items-center justify-center gap-1.5">
+             <Lock className="w-3 h-3" />
+             Existing accounts sign in with the same button - your role never changes.
            </div>
         </div>
       </div>

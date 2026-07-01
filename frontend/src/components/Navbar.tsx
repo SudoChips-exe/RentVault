@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Building2, LogOut, User, ChevronDown, Settings, Home } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useHeaderTheme } from '../contexts/HeaderThemeContext';
 import { SignInModal } from './SignInModal';
 
-const ROLES = ['tenant', 'landlord', 'agent', 'admin'] as const;
-
 export const Navbar: React.FC = () => {
-  const { user, firebaseUser, logout, switchRole, loading } = useAuth();
+  const { user, firebaseUser, logout, loading } = useAuth();
   const { theme } = useHeaderTheme();
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
   const [signInModalOpen, setSignInModalOpen] = useState(false);
 
   const isLight = theme === 'light';
@@ -58,42 +56,14 @@ export const Navbar: React.FC = () => {
               <div className={`w-20 h-8 rounded-lg animate-pulse ${isLight ? 'bg-slate-100' : 'bg-slate-900'}`} />
             ) : user ? (
               <div className="flex items-center gap-3">
-                {/* Role switcher */}
-                <div className="relative">
-                  <button
-                    onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all ${
-                      isLight 
-                        ? 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200' 
-                        : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    <Settings className="w-3 h-3" />
-                    {user.role}
-                    <ChevronDown className="w-3 h-3" />
-                  </button>
-                  {roleMenuOpen && (
-                    <div className={`absolute right-0 top-12 w-40 rounded-xl shadow-2xl border py-1 z-50 ${
-                      isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
-                    }`}>
-                      <p className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
-                        Switch Role
-                      </p>
-                      {ROLES.map((r) => (
-                        <button
-                          key={r}
-                          onClick={async () => { await switchRole(r); setRoleMenuOpen(false); }}
-                          className={`w-full text-left px-3 py-2 text-sm transition-colors capitalize font-medium ${
-                            isLight 
-                              ? `hover:bg-slate-50 ${user.role === r ? 'text-brand-500' : 'text-slate-600'}` 
-                              : `hover:bg-slate-800 ${user.role === r ? 'text-brand-400' : 'text-slate-300'}`
-                          }`}
-                        >
-                          {user.role === r ? '✓ ' : ''}{r}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                {/* Role badge (permanent, non-switchable) */}
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide ${
+                  isLight
+                    ? 'bg-slate-100 border border-slate-200 text-slate-600'
+                    : 'bg-slate-900 border border-slate-800 text-slate-300'
+                }`}>
+                  <Settings className="w-3 h-3" />
+                  {user.role}
                 </div>
 
                 {/* User menu */}
@@ -125,7 +95,7 @@ export const Navbar: React.FC = () => {
                         <p className={`text-xs truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{user.email}</p>
                       </div>
                       <button
-                        onClick={() => { logout(); setMenuOpen(false); }}
+                        onClick={async () => { setMenuOpen(false); await logout(); navigate('/'); }}
                         className={`w-full text-left flex items-center gap-2 px-4 py-2 text-sm transition-colors ${
                           isLight ? 'text-red-500 hover:bg-red-50' : 'text-red-400 hover:bg-slate-800'
                         }`}
@@ -153,10 +123,10 @@ export const Navbar: React.FC = () => {
         </div>
       </div>
 
-      {(menuOpen || roleMenuOpen) && (
+      {menuOpen && (
         <div
           className="fixed inset-0 z-40"
-          onClick={() => { setMenuOpen(false); setRoleMenuOpen(false); }}
+          onClick={() => setMenuOpen(false)}
         />
       )}
 

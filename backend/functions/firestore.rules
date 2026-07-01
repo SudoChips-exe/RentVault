@@ -18,11 +18,30 @@ service cloud.firestore {
       return isAuthenticated() && getUserRole() == role;
     }
 
+    // Helper: tenant verification fields are review-controlled and must only
+    // ever change via the tenantVerification* Cloud Functions (Admin SDK,
+    // which bypasses these rules entirely) - never by a direct client write.
+    function verificationFieldsUnchanged() {
+      return request.resource.data.get('verificationStatus', 'unverified') == resource.data.get('verificationStatus', 'unverified') &&
+        request.resource.data.get('verificationDocuments', null) == resource.data.get('verificationDocuments', null) &&
+        request.resource.data.get('verificationRejectionReason', null) == resource.data.get('verificationRejectionReason', null);
+    }
+
     // Users collection
     match /users/{uid} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.auth.uid == uid;
-      allow update: if isAuthenticated() && request.auth.uid == uid;
+      // Self-serve signup may only ever create a tenant or landlord account -
+      // admin/agent accounts must be provisioned out-of-band (Admin SDK or
+      // Firestore console), never chosen by the client on account creation.
+      allow create: if isAuthenticated() && request.auth.uid == uid &&
+        request.resource.data.role in ['tenant', 'landlord'];
+      // Role is set once at account creation and is permanently locked after that -
+      // updates may never change it, even by the account owner. This prevents
+      // client-side privilege escalation (e.g. a tenant granting themselves admin
+      // or self-approving their own tenant verification).
+      allow update: if isAuthenticated() && request.auth.uid == uid &&
+        request.resource.data.role == resource.data.role &&
+        verificationFieldsUnchanged();
       allow delete: if false; // Never delete users
     }
 

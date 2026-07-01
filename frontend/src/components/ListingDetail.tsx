@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatAmount, formatDate, parseFirebaseError } from '../lib/errorHelper';
 import {
   MapPin, Building2, User, ArrowLeft, CreditCard, Loader2, AlertCircle, Shield, Clock,
-  ExternalLink, CheckCircle2
+  ExternalLink, CheckCircle2, ShieldCheck
 } from 'lucide-react';
 
 interface Listing {
@@ -88,12 +88,18 @@ export const ListingDetail: React.FC = () => {
     }
 
     if (user.role !== 'tenant') {
-      setError('Only tenants can initiate a payment. Please switch your role to "Tenant".');
+      setError('Only tenant accounts can pay rent.');
       return;
     }
 
     setCheckoutLoading(true);
     setError(null);
+
+    // Open the popup synchronously on the click, before any await, so
+    // browsers still count it as a direct user gesture. We fill in the
+    // real URL once checkoutInitiate resolves - fixes the popup-blocker
+    // issue that hits when window.open() runs after an async call.
+    const popup = window.open('', '_blank');
 
     try {
       const initiate = httpsCallable<{ listingId: string }, { checkoutUrl: string; transactionId: string }>(
@@ -102,15 +108,21 @@ export const ListingDetail: React.FC = () => {
       );
       const result = await initiate({ listingId: id! });
       setCheckoutSuccess({ url: result.data.checkoutUrl, transactionId: result.data.transactionId });
-      // Open Nomba checkout
-      window.open(result.data.checkoutUrl, '_blank');
+      if (popup) {
+        popup.location.href = result.data.checkoutUrl;
+      } else {
+        window.open(result.data.checkoutUrl, '_blank');
+      }
     } catch (err: any) {
+      popup?.close();
       const parsed = parseFirebaseError(err);
       setError(parsed.message);
     } finally {
       setCheckoutLoading(false);
     }
   };
+
+  const isVerified = user?.verificationStatus === 'approved';
 
   if (listingLoading) {
     return (
@@ -267,6 +279,20 @@ export const ListingDetail: React.FC = () => {
                       <Clock className="w-4 h-4" />
                       Track Transaction
                     </button>
+                  </div>
+                ) : user && user.role === 'tenant' && !isVerified ? (
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2 p-4 bg-blue-50 border border-blue-100 rounded-2xl text-sm text-blue-700">
+                      <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      Get verified before paying rent - ID and income proof review takes 24-48h.
+                    </div>
+                    <a
+                      href={`${import.meta.env.VITE_DASHBOARD_URL || 'http://localhost:3000'}/tenant/verification`}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-2xl transition-all active:scale-95 text-lg"
+                    >
+                      <ShieldCheck className="w-5 h-5" />
+                      Get Verified
+                    </a>
                   </div>
                 ) : (
                   <button

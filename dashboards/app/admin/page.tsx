@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
@@ -20,16 +21,17 @@ interface Transaction {
 }
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('all');
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     try {
-      const getTxs = httpsCallable<any, { transactions: Transaction[] }>(functions, 'adminListTransactions');
+      const getTxs = httpsCallable<any, { transactions: Transaction[] }>(functions, 'getAllTransactions');
       const res = await getTxs();
       setTransactions(res.data.transactions);
       setError(null);
@@ -39,18 +41,16 @@ export default function AdminDashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (!user) return;
-    if (user.role !== 'admin') {
-      window.location.href = '/';
+    if (authLoading) return;
+    if (!user || user.role !== 'admin') {
+      router.push('/');
       return;
     }
-    if (user?.role === 'admin') {
-      fetchTransactions();
-    }
-  }, [user]);
+    fetchTransactions();
+  }, [user, authLoading, fetchTransactions, router]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -60,7 +60,7 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
       </div>
     );
   }

@@ -156,13 +156,6 @@ rentvault/
 │   │   └── middleware.ts                 # Role-based access
 │   ├── package.json
 │   └── next.config.js
-├── .kiro/
-│   └── specs/
-│       └── rent-split-escrow/
-│           ├── requirements.md           # Feature requirements
-│           ├── design.md                 # Architecture & data models
-│           ├── backend-tasks.md          # Backend implementation tasks
-│           └── frontend-tasks.md         # Frontend implementation tasks
 └── README.md                             # This file
 ```
 

@@ -50,6 +50,25 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {!user?.nombaAccountId && (
+          <div className="flex items-start gap-3 p-4 bg-nomba-500/10 border border-nomba-500/30 rounded-2xl text-slate-800">
+            <AlertCircle className="w-5 h-5 text-nomba-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-sm">Action required — your Nomba account ID is not set</p>
+              <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                Without it, your share of any disbursed rent payment cannot be sent to you. Add it now before any tenant pays rent on your listings.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {user?.nombaAccountId && (
+          <div className="flex items-center gap-3 p-4 bg-brand-50 border border-brand-100 rounded-2xl text-brand-700 text-sm font-medium">
+            <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+            Nomba account connected — you'll receive automatic payouts on verified transactions.
+          </div>
+        )}
+
         <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm space-y-8">
           <div className="space-y-4">
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nomba Account ID</label>

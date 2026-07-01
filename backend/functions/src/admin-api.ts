@@ -62,11 +62,30 @@ export const getAuditLogs = functions.https.onCall(async (data, context) => {
   const offset = (page - 1) * pageSize;
   const snapshot = await query.offset(offset).limit(pageSize).get();
 
-  const logs = snapshot.docs.map((doc) => ({
-    logId: doc.id,
-    ...doc.data(),
-    timestamp: doc.data().timestamp?.toDate?.()?.toISOString() || doc.data().timestamp,
-  }));
+  const logs = snapshot.docs.map((doc) => {
+    const data = doc.data();
+    const metadata = data.metadata || {};
+    // eventType is one of a handful of generic buckets - surface the more
+    // specific status/action from metadata when available so the admin UI
+    // can show (and color-code) something meaningful instead of e.g.
+    // "transaction_status_change" for every row.
+    const action =
+      (data.eventType === 'transaction_status_change' && metadata.newStatus) ||
+      (data.eventType === 'verification_action' && metadata.action) ||
+      data.eventType;
+
+    return {
+      id: doc.id,
+      logId: doc.id,
+      action,
+      performedBy: data.actor,
+      targetId: data.transactionId || '-',
+      details: data.description,
+      createdAt: data.timestamp?.toDate?.()?.toISOString() || data.timestamp,
+      eventType: data.eventType,
+      metadata,
+    };
+  });
 
   return {
     logs,
@@ -120,6 +139,7 @@ export const getAllTransactions = functions.https.onCall(async (data, context) =
   const transactions = snapshot.docs.map((doc) => {
     const t = doc.data();
     return {
+      id: doc.id,
       transactionId: doc.id,
       ...t,
       tenantName: userMap[t.tenantUid] || t.tenantUid,

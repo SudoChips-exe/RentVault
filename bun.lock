@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "rent-split-escrow",
+      "name": "RentVault",
       "devDependencies": {
         "concurrently": "^8.2.2",
       },

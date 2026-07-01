@@ -1,29 +1,24 @@
 import React from 'react';
-import { Building2, Home, X, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Building2, Home, X, ShieldCheck, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
- 
+
 interface SignInModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
  
 export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => {
-  const { signInWithGoogle, signingIn } = useAuth();
-  const navigate = useNavigate();
- 
+  const { signingIn } = useAuth();
+
   if (!isOpen) return null;
- 
-  const handleTenantSignIn = async () => {
-    try {
-      await signInWithGoogle();
-      onClose();
-      navigate('/listings');
-    } catch {
-      // Error is handled by AuthContext
-    }
+
+  const handleTenantSignIn = () => {
+    // Redirect to the Next.js dashboard portal, where the tenant dashboard
+    // (escrow balance, payments, properties) lives and Tenant Auth is handled.
+    const dashboardUrl = import.meta.env.VITE_DASHBOARD_URL || 'http://localhost:3000';
+    window.location.href = `${dashboardUrl}/tenant`;
   };
- 
+
   const handleLandlordSignIn = () => {
     // Redirect to Next.js dashboard portal where Landlord Auth is handled
     const dashboardUrl = import.meta.env.VITE_DASHBOARD_URL || 'http://localhost:3000';

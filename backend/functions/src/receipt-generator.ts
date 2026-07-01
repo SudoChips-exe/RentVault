@@ -1,0 +1,146 @@
+import * as functions from 'firebase-functions';
+import * as admin from 'firebase-admin';
+import PDFDocument from 'pdfkit';
+import { formatAmountNaira } from './models';
+
+const db = admin.firestore();
+const bucket = admin.storage().bucket();
+
+const RECEIPT_ELIGIBLE_STATUSES = new Set([
+  'funds_held',
+  'verification_submitted',
+  'verified',
+  'disbursement_pending',
+  'completed',
+  'disbursement_partial_failure',
+]);
+
+export const generateReceipt = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'You must be signed in');
+  }
+
+  if (!data.transactionId || typeof data.transactionId !== 'string') {
+    throw new functions.https.HttpsError('invalid-argument', 'transactionId is required');
+  }
+
+  const uid = context.auth.uid;
+  const txDoc = await db.collection('transactions').doc(data.transactionId).get();
+  if (!txDoc.exists) {
+    throw new functions.https.HttpsError('not-found', 'Transaction not found');
+  }
+
+  const tx = txDoc.data()!;
+  const userDoc = await db.collection('users').doc(uid).get();
+  const requesterRole = userDoc.exists ? userDoc.data()!.role : null;
+
+  const isAssociated =
+    tx.tenantUid === uid || tx.landlordUid === uid || tx.agentUid === uid || requesterRole === 'admin';
+  if (!isAssociated) {
+    throw new functions.https.HttpsError('permission-denied', 'You are not associated with this transaction');
+  }
+
+  if (!RECEIPT_ELIGIBLE_STATUSES.has(tx.status)) {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'A receipt is only available once a payment has been made'
+    );
+  }
+
+  const filePath = `receipts/${data.transactionId}.pdf`;
+  const file = bucket.file(filePath);
+  const [alreadyExists] = await file.exists();
+
+  if (!alreadyExists) {
+    const [listingDoc, tenantDoc, landlordDoc] = await Promise.all([
+      db.collection('listings').doc(tx.listingId).get(),
+      db.collection('users').doc(tx.tenantUid).get(),
+      db.collection('users').doc(tx.landlordUid).get(),
+    ]);
+    const listing = listingDoc.exists ? listingDoc.data()! : null;
+    const tenant = tenantDoc.exists ? tenantDoc.data()! : null;
+    const landlord = landlordDoc.exists ? landlordDoc.data()! : null;
+
+    const pdfBuffer = await buildReceiptPdf({
+      transactionId: data.transactionId,
+      transactionReference: tx.transactionReference,
+      amount: tx.amount,
+      status: tx.status,
+      createdAt: tx.createdAt?.toDate?.() || new Date(),
+      propertyName: listing?.propertyName || 'Unknown property',
+      propertyAddress: listing?.address || 'Unknown address',
+      tenantName: tenant?.displayName || 'Unknown tenant',
+      landlordName: landlord?.displayName || 'Unknown landlord',
+    });
+
+    await file.save(pdfBuffer, {
+      contentType: 'application/pdf',
+      metadata: { cacheControl: 'private, max-age=3600' },
+    });
+  }
+
+  const [url] = await file.getSignedUrl({
+    action: 'read',
+    expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+  });
+
+  functions.logger.log(`[RECEIPT] Generated/served receipt for transaction ${data.transactionId}`);
+
+  return { url };
+});
+
+function buildReceiptPdf(params: {
+  transactionId: string;
+  transactionReference: string;
+  amount: number;
+  status: string;
+  createdAt: Date;
+  propertyName: string;
+  propertyAddress: string;
+  tenantName: string;
+  landlordName: string;
+}): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    doc.fontSize(20).font('Helvetica-Bold').text('RentVault', { continued: false });
+    doc.fontSize(10).font('Helvetica').fillColor('#16a34a').text('Secure Escrow Payment Receipt');
+    doc.moveDown(1.5);
+
+    doc.fillColor('#000000').fontSize(14).font('Helvetica-Bold').text('Payment Receipt');
+    doc.moveDown(0.5);
+    doc.fontSize(9).font('Helvetica').fillColor('#666666')
+      .text(`Transaction Reference: ${params.transactionReference}`)
+      .text(`Transaction ID: ${params.transactionId}`)
+      .text(`Date: ${params.createdAt.toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' })}`);
+    doc.moveDown(1.5);
+
+    const row = (label: string, value: string) => {
+      doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text(label, { continued: true, width: 200 });
+      doc.font('Helvetica').fillColor('#333333').text(`  ${value}`);
+      doc.moveDown(0.4);
+    };
+
+    row('Property:', params.propertyName);
+    row('Address:', params.propertyAddress);
+    row('Tenant:', params.tenantName);
+    row('Landlord:', params.landlordName);
+    row('Status:', params.status.replace(/_/g, ' ').toUpperCase());
+    doc.moveDown(0.6);
+
+    doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000')
+      .text(`Amount Paid: ${formatAmountNaira(params.amount)}`);
+    doc.moveDown(1.5);
+
+    doc.fontSize(8).font('Helvetica').fillColor('#999999')
+      .text('Funds for this transaction are held in escrow via RentVault and released to the landlord only upon verified occupancy.', {
+        width: 495,
+      });
+
+    doc.end();
+  });
+}

@@ -1,11 +1,21 @@
 import * as admin from 'firebase-admin';
 
+export type TenantVerificationStatus = 'unverified' | 'pending' | 'approved' | 'rejected';
+
 export interface User {
   uid: string;
   email: string;
   role: 'tenant' | 'landlord' | 'agent' | 'admin';
   displayName: string;
   nombaAccountId?: string;
+  verificationStatus?: TenantVerificationStatus;
+  verificationDocuments?: {
+    idDocumentUrl?: string;
+    incomeProofUrl?: string;
+  };
+  verificationRejectionReason?: string;
+  verificationSubmittedAt?: admin.firestore.Timestamp;
+  verificationReviewedAt?: admin.firestore.Timestamp;
   createdAt: admin.firestore.Timestamp;
   updatedAt: admin.firestore.Timestamp;
 }
@@ -152,6 +162,11 @@ export function generateTransactionReference(): string {
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 8).toUpperCase();
   return `RENT-${timestamp}-${random}`;
+}
+
+export function formatAmountNaira(kobo: number): string {
+  const naira = kobo / 100;
+  return `NGN ${naira.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 export function calculateDisbursementAmounts(

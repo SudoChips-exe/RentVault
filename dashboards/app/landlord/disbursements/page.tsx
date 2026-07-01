@@ -37,19 +37,20 @@ export default function LandlordDisbursements() {
     );
 
     const unsub = onSnapshot(q, (snap) => {
-      // In a real app we'd fetch the subcollections here. 
-      // For the UI, we'll construct mock data based on the split.
-      const items: Disbursement[] = snap.docs.map(d => {
-        const t = d.data();
-        return {
-          id: `disb_${d.id}`,
-          transactionId: d.id,
-          amount: (t.amount * t.splitConfigSnapshot.landlordPercentage) / 100,
-          status: 'disbursed',
-          nombaTransferReference: `REF-${d.id.substring(0, 8).toUpperCase()}`,
-          createdAt: t.updatedAt
-        };
-      });
+      const items: Disbursement[] = snap.docs
+        .filter(d => (d.data() as any).disbursements?.landlord)
+        .map(d => {
+          const t = d.data() as any;
+          const disb = t.disbursements.landlord;
+          return {
+            id: `disb_${d.id}`,
+            transactionId: d.id,
+            amount: disb.amount,
+            status: disb.status,
+            nombaTransferReference: disb.nombaTransferReference,
+            createdAt: t.updatedAt,
+          };
+        });
       setDisbursements(items);
       setLoading(false);
     });
@@ -60,7 +61,7 @@ export default function LandlordDisbursements() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
       </div>
     );
   }
@@ -94,8 +95,12 @@ export default function LandlordDisbursements() {
               <tbody className="divide-y divide-slate-100 text-slate-600">
                 {disbursements.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-16 text-center text-slate-400 font-medium">
-                      No disbursements yet.
+                    <td colSpan={6} className="px-6 py-16 text-center">
+                      <Building2 className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                      <p className="font-bold text-slate-500">No payouts yet</p>
+                      <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                        Disbursements appear here once a tenant's payment is verified and the split transfer completes via Nomba.
+                      </p>
                     </td>
                   </tr>
                 ) : (

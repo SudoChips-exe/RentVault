@@ -32,6 +32,13 @@ export const checkoutInitiate = functions.https.onCall(async (data, context) => 
     );
   }
 
+  if (user.verificationStatus !== 'approved') {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'Complete tenant verification before paying rent'
+    );
+  }
+
   if (!data.listingId || typeof data.listingId !== 'string') {
     throw new functions.https.HttpsError(
       'invalid-argument',

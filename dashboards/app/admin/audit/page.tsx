@@ -25,7 +25,7 @@ export default function AdminAuditLogs() {
 
   const fetchLogs = async () => {
     try {
-      const getLogs = httpsCallable<any, { logs: AuditLog[] }>(functions, 'adminGetAuditLogs');
+      const getLogs = httpsCallable<any, { logs: AuditLog[] }>(functions, 'getAuditLogs');
       const res = await getLogs();
       setLogs(res.data.logs);
       setError(null);
@@ -48,10 +48,18 @@ export default function AdminAuditLogs() {
     fetchLogs();
   };
 
+  const getActionStyle = (action: string) => {
+    if (action.includes('checkout') || action.includes('payment')) return 'bg-blue-50 text-blue-700 border-blue-100';
+    if (action.includes('held') || action.includes('escrow')) return 'bg-amber-50 text-amber-700 border-amber-100';
+    if (action.includes('approved') || action.includes('verified') || action.includes('disburs')) return 'bg-brand-50 text-brand-700 border-brand-100';
+    if (action.includes('refund') || action.includes('reject') || action.includes('timeout')) return 'bg-orange-50 text-orange-700 border-orange-100';
+    return 'bg-slate-100 text-slate-600 border-slate-200';
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
       </div>
     );
   }
@@ -102,8 +110,12 @@ export default function AdminAuditLogs() {
               <tbody className="divide-y divide-slate-100 text-slate-600">
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-24 text-center text-slate-400 font-medium">
-                      No audit logs available.
+                    <td colSpan={5} className="px-6 py-24 text-center">
+                      <ScrollText className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                      <p className="font-bold text-slate-500">No audit events yet</p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Events appear here as transactions move through the escrow lifecycle.
+                      </p>
                     </td>
                   </tr>
                 ) : (
@@ -111,7 +123,7 @@ export default function AdminAuditLogs() {
                     <tr key={l.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 text-slate-500">{formatDate(l.createdAt)}</td>
                       <td className="px-6 py-4">
-                        <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider border border-slate-200">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getActionStyle(l.action)}`}>
                           {l.action}
                         </span>
                       </td>

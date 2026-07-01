@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { User as FirebaseUser } from 'firebase/auth';
 import {
   GoogleAuthProvider,
@@ -17,6 +17,12 @@ export interface UserProfile {
   role: 'tenant' | 'landlord' | 'agent' | 'admin';
   displayName: string;
   nombaAccountId?: string;
+  verificationStatus?: 'unverified' | 'pending' | 'approved' | 'rejected';
+  verificationDocuments?: {
+    idDocumentUrl?: string;
+    incomeProofUrl?: string;
+  };
+  verificationRejectionReason?: string;
 }
 
 interface AuthContextType {
@@ -24,9 +30,8 @@ interface AuthContextType {
   firebaseUser: FirebaseUser | null;
   loading: boolean;
   signingIn: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (intendedRole?: 'tenant' | 'landlord') => Promise<void>;
   logout: () => Promise<void>;
-  switchRole: (role: 'tenant' | 'landlord' | 'agent' | 'admin') => Promise<void>;
   updateNombaAccount: (accountId: string) => Promise<void>;
 }
 
@@ -36,6 +41,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [signingIn, setSigningIn] = useState(false);
+  const intendedRoleRef = useRef<'tenant' | 'landlord'>('tenant');
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (fUser) => {
@@ -55,7 +62,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const newProfile = {
             email: fUser.email || '',
             displayName: fUser.displayName || fUser.email?.split('@')[0] || '',
-            role: 'tenant' as const,
+            // Role is chosen once at signup (see intendedRoleRef) and is
+            // permanently locked afterward - see firestore.rules.
+            role: intendedRoleRef.current,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           };
@@ -80,25 +89,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribeAuth();
   }, []);
 
-  const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+  const signInWithGoogle = async (intendedRole: 'tenant' | 'landlord' = 'tenant') => {
+    intendedRoleRef.current = intendedRole;
+    setSigningIn(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error('[AUTH_CONTEXT] Google sign-in failed:', error);
+      throw error;
+    } finally {
+      setSigningIn(false);
+    }
   };
 
   const logout = async () => {
+    console.log('[AUTH_CONTEXT] logout called');
     try {
+      await signOut(auth);
+      console.log('[AUTH_CONTEXT] signOut successful');
       setUser(null);
       setFirebaseUser(null);
-      await signOut(auth);
       window.location.href = '/'; // Redirect to landing page after logout
     } catch (error) {
       console.error('[AUTH_CONTEXT] Sign-out failed:', error);
     }
-  };
-
-  const switchRole = async (role: 'tenant' | 'landlord' | 'agent' | 'admin') => {
-    if (!firebaseUser) return;
-    await updateDoc(doc(db, 'users', firebaseUser.uid), { role, updatedAt: serverTimestamp() });
   };
 
   const updateNombaAccount = async (accountId: string) => {
@@ -110,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, signInWithGoogle, logout, switchRole, updateNombaAccount }}>
+    <AuthContext.Provider value={{ user, firebaseUser, loading, signingIn, signInWithGoogle, logout, updateNombaAccount }}>
       {children}
     </AuthContext.Provider>
   );

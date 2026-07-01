@@ -44,7 +44,7 @@ function AdminRefundsContent() {
     });
 
     return () => unsub();
-  }, [user]);
+  }, [user?.role]);
 
   const handleRefund = async (id: string) => {
     setActionLoading(id);
@@ -62,7 +62,7 @@ function AdminRefundsContent() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
       </div>
     );
   }
@@ -144,7 +144,7 @@ function AdminRefundsContent() {
 
 export default function AdminRefunds() {
   return (
-    <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 text-emerald-500 animate-spin" /></div>}>
+    <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 text-brand-500 animate-spin" /></div>}>
       <AdminRefundsContent />
     </Suspense>
   );

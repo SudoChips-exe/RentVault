@@ -15,6 +15,7 @@ export interface UserProfile {
   role: 'tenant' | 'landlord' | 'agent' | 'admin';
   displayName: string;
   nombaAccountId?: string;
+  verificationStatus?: 'unverified' | 'pending' | 'approved' | 'rejected';
   createdAt?: any;
   updatedAt?: any;
 }
@@ -26,7 +27,6 @@ interface AuthContextType {
   signingIn: boolean;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
-  switchRole: (role: 'tenant' | 'landlord' | 'agent' | 'admin') => Promise<void>;
   updateNombaAccount: (accountId: string) => Promise<void>;
 }
 
@@ -105,22 +105,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const switchRole = async (role: 'tenant' | 'landlord' | 'agent' | 'admin') => {
-    if (!firebaseUser) return;
-    setLoading(true);
-    try {
-      const userRef = doc(db, 'users', firebaseUser.uid);
-      await updateDoc(userRef, {
-        role,
-        updatedAt: serverTimestamp(),
-      });
-    } catch (error) {
-      console.error('[AUTH_CONTEXT] Failed to switch role:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const updateNombaAccount = async (accountId: string) => {
     if (!firebaseUser) return;
     try {
@@ -144,7 +128,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signingIn,
         signInWithGoogle,
         logout,
-        switchRole,
         updateNombaAccount,
       }}
     >

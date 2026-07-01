@@ -54,7 +54,7 @@ function AdminVerificationContent() {
     });
 
     return () => unsub();
-  }, [user, defaultTx, selectedTx]);
+  }, [user?.role, defaultTx]);
 
   const handleAction = async (approved: boolean) => {
     if (!selectedTx) return;
@@ -79,7 +79,7 @@ function AdminVerificationContent() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
       </div>
     );
   }
@@ -182,12 +182,13 @@ function AdminVerificationContent() {
           </div>
         </div>
       )}
-    );
-  }
+    </div>
+  );
+}
 
 export default function AdminVerification() {
   return (
-    <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 text-emerald-500 animate-spin" /></div>}>
+    <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 text-brand-500 animate-spin" /></div>}>
       <AdminVerificationContent />
     </Suspense>
   );

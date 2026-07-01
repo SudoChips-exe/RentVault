@@ -82,10 +82,13 @@ export default function SplitConfigsPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
       </div>
     );
   }
+
+  const sum = (parseInt(landlordPercentage) || 0) + (parseInt(agentPercentage) || 0) + (parseInt(platformPercentage) || 0);
+  const sumValid = sum === 100;
 
     return (
       <div className="max-w-4xl mx-auto space-y-8">
@@ -173,6 +176,19 @@ export default function SplitConfigsPage() {
                 </div>
               </div>
             </div>
+
+            <div className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold transition-colors ${
+              sumValid
+                ? 'bg-brand-50 border border-brand-100 text-brand-700'
+                : 'bg-slate-50 border border-slate-200 text-slate-500'
+            }`}>
+              {sumValid
+                ? <CheckCircle2 className="w-4 h-4" />
+                : <AlertCircle className="w-4 h-4" />
+              }
+              <span>Total: <span className="font-mono">{sum}%</span> {sumValid ? '— ready to save' : '— must equal 100%'}</span>
+            </div>
+
             <button
               onClick={handleCreate}
               disabled={saving || !name || !landlordPercentage || !platformPercentage}

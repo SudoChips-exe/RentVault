@@ -1,10 +1,6 @@
 import './globals.css';
-import { Inter } from 'next/font/google';
 import { AuthProvider } from './context/AuthContext';
-import { DashboardLayout } from './components/DashboardLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'RentVault - Dashboard',
@@ -18,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} bg-slate-950 text-slate-200 min-h-screen antialiased selection:bg-brand-500/30`}>
+      <body className="bg-slate-950 text-slate-200 min-h-screen antialiased selection:bg-brand-500/30">
         <AuthProvider>
           <ErrorBoundary>
             {children}

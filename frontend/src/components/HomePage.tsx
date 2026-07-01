@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useHeaderTheme } from '../contexts/HeaderThemeContext';
-import { ArrowRight, CheckCircle2, ShieldCheck, Zap, Scale, Eye, HelpCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ShieldCheck, Zap, Scale, Eye, HelpCircle, X } from 'lucide-react';
 import { SignInModal } from './SignInModal';
 
 // ─── Refined Product Demo Widget ──────────────────────────────────────────────
@@ -213,6 +213,33 @@ const FAQS = [
   },
 ];
 
+const COMPARISON = [
+  {
+    feature: 'Payment Security',
+    traditional: 'Direct Transfer to Agent/Landlord',
+    rentvault: 'Regulated Nomba Escrow Vault',
+    isWinning: true,
+  },
+  {
+    feature: 'Ownership Proof',
+    traditional: 'Trusting provided documents',
+    rentvault: 'Independent Administrative Audit',
+    isWinning: true,
+  },
+  {
+    feature: 'Refund Guarantee',
+    traditional: 'Depends on landlord\'s goodwill',
+    rentvault: 'Automatic Contract Voiding',
+    isWinning: true,
+  },
+  {
+    feature: 'Payout Precision',
+    traditional: 'Manual bank transfers',
+    rentvault: 'Programmatic Automated Split',
+    isWinning: true,
+  },
+];
+
 export const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { setTheme } = useHeaderTheme();
@@ -266,11 +293,11 @@ export const HomePage: React.FC = () => {
                 <span className="w-1 h-1 rounded-full bg-slate-900" />
                 Powered by Nomba 
               </div>
-              <h1 className="text-6xl sm:text-7xl lg:text-[6.5rem] font-black text-slate-900 leading-[0.9] tracking-tighter mb-8">
-                Rent paid.<br />
-                <span className="text-brand-500">No fraud.</span><br />
-                Guaranteed.
-              </h1>
+               <h1 className="text-6xl sm:text-7xl lg:text-[7.5rem] font-black text-slate-900 leading-[0.9] tracking-tighter mb-8">
+                 Rent paid.<br />
+                 <span className="text-brand-500">No fraud.</span><br />
+                 Guaranteed.
+               </h1>
               <p className="text-slate-600 text-xl leading-relaxed mb-12 max-w-lg">
                 The gold standard for secure rentals in Nigeria. We protect your 
                 payments with enterprise-grade escrow, ensuring you only pay 
@@ -390,6 +417,64 @@ export const HomePage: React.FC = () => {
                 <p className="text-slate-600 text-base leading-relaxed">{item.body}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Competitor Analysis (Dark) ─────────────────────────────────────────────────────── */}
+      <section 
+        ref={(el) => { sectionRefs.current['compare'] = el; }}
+        data-theme="dark"
+        className="bg-slate-950 py-32 px-4 sm:px-6 lg:px-8"
+      >
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">
+              The Truth Table
+            </div>
+            <h2 className="text-4xl lg:text-6xl font-black text-white tracking-tight">
+              Stop gambling with <br />
+              <span className="text-nomba-500">your hard-earned money.</span>
+            </h2>
+          </div>
+
+          <div className="relative">
+            <div className="absolute -inset-1 bg-gradient-to-r from-brand-500/20 via-nomba-500/20 to-brand-500/20 rounded-[2rem] blur-xl opacity-50" />
+            
+            <div className="relative bg-slate-900 border border-slate-800 rounded-[2rem] overflow-hidden shadow-2xl">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-950/50 border-b border-slate-800">
+                    <th className="px-6 py-8 text-slate-400 font-bold uppercase tracking-widest text-xs">Feature</th>
+                    <th className="px-6 py-8 text-slate-500 font-bold uppercase tracking-widest text-xs text-center">The Traditional Way</th>
+                    <th className="px-6 py-8 text-nomba-500 font-black uppercase tracking-widest text-xs text-center bg-nomba-500/5">RentVault</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {COMPARISON.map((item, i) => (
+                    <tr key={i} className="group hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-6 text-slate-300 font-bold text-base">{item.feature}</td>
+                      <td className="px-6 py-6 text-slate-500 text-sm text-center leading-relaxed">
+                        {item.traditional}
+                      </td>
+                      <td className="px-6 py-6 text-white text-sm text-center font-bold bg-nomba-500/5 relative">
+                        {item.rentvault}
+                        <div className="absolute top-2 right-2">
+                          <CheckCircle2 className="w-4 h-4 text-nomba-500" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-slate-950 border-t border-slate-800">
+                    <td className="px-6 py-8 text-slate-400 font-bold uppercase tracking-widest text-xs">Verdict</td>
+                    <td className="px-6 py-8 text-red-400 font-black text-center uppercase tracking-widest text-xs">High Risk</td>
+                    <td className="px-6 py-8 text-nomba-500 font-black text-center uppercase tracking-widest text-xs bg-nomba-500/10">Enterprise Secure</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </div>
       </section>
