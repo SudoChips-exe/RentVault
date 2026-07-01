@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 import { nombaClient } from './nomba-client';
 import { calculateDisbursementAmounts, TRANSACTION_STATUSES } from './models';
 import { logTransactionStatusChange, logNombaApiCall } from './audit-logger';
+import { config } from './config';
 
 const db = admin.firestore();
 
@@ -37,7 +38,7 @@ export const disbursementTrigger = functions.firestore
         return;
       }
 
-      const platformNombaAccountId = functions.config().platform?.nomba_account_id;
+      const platformNombaAccountId = config.platform.nombaAccountId;
       if (!platformNombaAccountId) {
         functions.logger.error('[DISBURSEMENT] Platform nombaAccountId not configured');
         return;

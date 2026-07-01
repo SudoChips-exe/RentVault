@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions';
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import { config } from './config';
 
 interface NombaConfig {
   parentAccountId: string;
@@ -37,19 +38,19 @@ export class NombaClient {
   private tokenExpiry: number = 0;
 
   constructor(customConfig?: Partial<NombaConfig>) {
-    const isTest = functions.config().nomba?.env === 'test';
+    const isTest = config.nomba.env === 'test';
 
     this.config = {
-      parentAccountId: customConfig?.parentAccountId || functions.config().nomba?.parent_account_id || '',
-      subAccountId: customConfig?.subAccountId || functions.config().nomba?.sub_account_id || '',
+      parentAccountId: customConfig?.parentAccountId || config.nomba.parentAccountId || '',
+      subAccountId: customConfig?.subAccountId || config.nomba.subAccountId || '',
       clientId: customConfig?.clientId || (isTest
-        ? functions.config().nomba?.test_client_id
-        : functions.config().nomba?.live_client_id) || '',
+        ? config.nomba.testClientId
+        : config.nomba.liveClientId) || '',
       privateKey: customConfig?.privateKey || (isTest
-        ? functions.config().nomba?.test_private_key
-        : functions.config().nomba?.live_private_key) || '',
-      webhookSecret: customConfig?.webhookSecret || functions.config().nomba?.webhook_secret || '',
-      baseUrl: customConfig?.baseUrl || functions.config().nomba?.base_url || 'https://api.nomba.com/v1',
+        ? config.nomba.testPrivateKey
+        : config.nomba.livePrivateKey) || '',
+      webhookSecret: customConfig?.webhookSecret || config.nomba.webhookSecret || '',
+      baseUrl: customConfig?.baseUrl || config.nomba.baseUrl || 'https://api.nomba.com/v1',
     };
 
     this.client = axios.create({

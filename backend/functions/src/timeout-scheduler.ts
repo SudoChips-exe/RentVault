@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 import { TRANSACTION_STATUSES } from './models';
 import { logTransactionStatusChange } from './audit-logger';
 import { processRefund } from './refund-trigger';
+import { config } from './config';
 
 const db = admin.firestore();
 
@@ -11,7 +12,7 @@ export const verificationTimeoutScheduler = functions.pubsub
   .onRun(async (context) => {
     functions.logger.log('[TIMEOUT] Checking for expired verifications');
 
-    const verificationTimeoutHours = functions.config().verification?.timeout_hours || 48;
+    const verificationTimeoutHours = config.verification.timeoutHours;
 
     const cutoffDate = new Date();
     cutoffDate.setHours(cutoffDate.getHours() - verificationTimeoutHours);

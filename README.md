@@ -2,8 +2,6 @@
 
 A Firebase-first web application that enables secure rent payments with automatic escrow, landlord verification, and instant split disbursements to landlords, agents, and platforms using the Nomba payment API.
 
-Built for hackathon demo in 2-3 days.
-
 ---
 
 ## 🎯 Overview
@@ -532,15 +530,10 @@ All webhook requests validate signature using Nomba webhook secret before proces
 
 ## 📝 License
 
-MIT License - feel free to use for hackathons, demos, or production.
+MIT License 
 
 ---
 
-## 👥 Contributors
-
-Built with ❤️ for hackathon demo.
-
-For questions or support, contact: [your-email@example.com]
 
 ---
 
@@ -552,5 +545,3 @@ For questions or support, contact: [your-email@example.com]
 - [Next.js Documentation](https://nextjs.org/docs)
 
 ---
-
-**Happy Hacking! 🚀**

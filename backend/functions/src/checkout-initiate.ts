@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 import { nombaClient } from './nomba-client';
 import { generateTransactionReference, TRANSACTION_STATUSES } from './models';
 import { logTransactionStatusChange, logNombaApiCall } from './audit-logger';
+import { config } from './config';
 
 const db = admin.firestore();
 
@@ -64,7 +65,7 @@ export const checkoutInitiate = functions.https.onCall(async (data, context) => 
 
   const transactionReference = generateTransactionReference();
 
-  const webhookBaseUrl = functions.config().nomba?.webhook_base_url
+  const webhookBaseUrl = config.nomba.webhookBaseUrl
     || `https://us-central1-${process.env.GCLOUD_PROJECT}.cloudfunctions.net`;
 
   let checkoutUrl: string;
