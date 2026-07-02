@@ -21,10 +21,7 @@ describe('NombaClient webhook signature validation', () => {
       data: { reference: 'RENT-123456-ABC123' },
     });
     const crypto = require('crypto');
-    const signature = crypto
-      .createHmac('sha256', 'test_webhook_secret')
-      .update(payload)
-      .digest('hex');
+    const signature = crypto.createHmac('sha256', 'test_webhook_secret').update(payload).digest('hex');
 
     expect(client.validateWebhookSignature(payload, signature)).toBe(true);
   });
@@ -47,20 +44,23 @@ describe('NombaClient webhook signature validation', () => {
     expect(client.validateWebhookSignature(payload, '')).toBe(false);
   });
 
+  test('rejects tampered payload', () => {
+    const crypto = require('crypto');
+    const original = JSON.stringify({ event: 'checkout.success', data: { reference: 'RENT-TEST-REF' } });
+    const sig = crypto.createHmac('sha256', 'test_webhook_secret').update(original).digest('hex');
+    const tampered = JSON.stringify({ event: 'checkout.success', data: { reference: 'RENT-TAMPERED' } });
+
+    expect(client.validateWebhookSignature(tampered, sig)).toBe(false);
+  });
+
   test('signature is deterministic for same payload', () => {
     const payload = JSON.stringify({
       event: 'checkout.success',
       data: { reference: 'RENT-123456-ABC123' },
     });
     const crypto = require('crypto');
-    const sig1 = crypto
-      .createHmac('sha256', 'test_webhook_secret')
-      .update(payload)
-      .digest('hex');
-    const sig2 = crypto
-      .createHmac('sha256', 'test_webhook_secret')
-      .update(payload)
-      .digest('hex');
+    const sig1 = crypto.createHmac('sha256', 'test_webhook_secret').update(payload).digest('hex');
+    const sig2 = crypto.createHmac('sha256', 'test_webhook_secret').update(payload).digest('hex');
 
     expect(sig1).toBe(sig2);
   });
@@ -69,15 +69,21 @@ describe('NombaClient webhook signature validation', () => {
     const crypto = require('crypto');
     const payload1 = JSON.stringify({ event: 'checkout.success' });
     const payload2 = JSON.stringify({ event: 'transfer.success' });
-    const sig1 = crypto
-      .createHmac('sha256', 'test_webhook_secret')
-      .update(payload1)
-      .digest('hex');
-    const sig2 = crypto
-      .createHmac('sha256', 'test_webhook_secret')
-      .update(payload2)
-      .digest('hex');
+    const sig1 = crypto.createHmac('sha256', 'test_webhook_secret').update(payload1).digest('hex');
+    const sig2 = crypto.createHmac('sha256', 'test_webhook_secret').update(payload2).digest('hex');
 
     expect(sig1).not.toBe(sig2);
+  });
+
+  test('fails closed when webhook secret is not configured', () => {
+    const unconfigured = new NombaClient({
+      parentAccountId: 'test_parent',
+      subAccountId: 'test_sub',
+      clientId: 'test_client',
+      privateKey: 'test_key',
+      webhookSecret: '',
+      baseUrl: 'https://api.sandbox.nomba.com/v1',
+    });
+    expect(unconfigured.validateWebhookSignature('{}', 'anything')).toBe(false);
   });
 });

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { callApi } from '../../lib/api';
+import { collection, query, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import { useAuth } from '../../context/AuthContext';
-import { formatDate, parseFirebaseError } from '../../lib/errorHelper';
-import { ScrollText, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { formatDate } from '../../lib/errorHelper';
+import { ScrollText, Loader2, AlertCircle } from 'lucide-react';
 
 interface AuditLog {
   id: string;
@@ -15,36 +16,55 @@ interface AuditLog {
   createdAt: any;
 }
 
+// Mirrors the action-label derivation the backend's getAuditLogs endpoint
+// used to do server-side - eventType is one of a handful of generic
+// buckets, so surface the more specific status/action from metadata when
+// available instead of showing e.g. "transaction_status_change" for every row.
+function deriveAction(eventType: string, metadata: Record<string, any> | undefined): string {
+  const meta = metadata || {};
+  if (eventType === 'transaction_status_change' && meta.newStatus) return meta.newStatus;
+  if (eventType === 'verification_action' && meta.action) return meta.action;
+  return eventType;
+}
+
 export default function AdminAuditLogs() {
   const { user } = useAuth();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLogs = async () => {
-    try {
-      const res = await callApi<{ logs: AuditLog[] }>('getAuditLogs');
-      setLogs(res.data.logs);
-      setError(null);
-    } catch (err) {
-      setError(parseFirebaseError(err).message);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
   useEffect(() => {
-    if (user?.role === 'admin') {
-      fetchLogs();
-    }
-  }, [user]);
+    if (user?.role !== 'admin') return;
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchLogs();
-  };
+    const q = query(collection(db, 'auditLogs'), orderBy('timestamp', 'desc'), limit(100));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setLogs(
+          snap.docs.map((d) => {
+            const data = d.data();
+            return {
+              id: d.id,
+              action: deriveAction(data.eventType, data.metadata),
+              performedBy: data.actor,
+              targetId: data.transactionId || '-',
+              details: data.description,
+              createdAt: data.timestamp,
+            };
+          })
+        );
+        setError(null);
+        setLoading(false);
+      },
+      (err) => {
+        console.error('[AUDIT_LOG] Firestore error:', err);
+        setError('Failed to load audit logs. Please try again.');
+        setLoading(false);
+      }
+    );
+
+    return () => unsub();
+  }, [user]);
 
   const getActionStyle = (action: string) => {
     if (action.includes('checkout') || action.includes('payment')) return 'bg-blue-50 text-blue-700 border-blue-100';
@@ -67,16 +87,8 @@ export default function AdminAuditLogs() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-4xl font-black text-slate-900 tracking-tighter">Audit Logs</h1>
-            <p className="text-slate-500 text-sm mt-1">System-wide immutable record of critical actions.</p>
+            <p className="text-slate-500 text-sm mt-1">System-wide immutable record of critical actions, updated live.</p>
           </div>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-bold rounded-2xl transition-all shadow-sm disabled:opacity-50 active:scale-95"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
         </div>
 
         {error && (
@@ -93,7 +105,7 @@ export default function AdminAuditLogs() {
               Action History
             </h2>
           </div>
-          
+
           <div className="flex-1 overflow-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-slate-50 text-slate-500 sticky top-0 z-10 backdrop-blur-sm">

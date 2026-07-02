@@ -6,8 +6,8 @@ import { callApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { formatAmount, formatDate, parseFirebaseError } from '../lib/errorHelper';
 import {
-  MapPin, Building2, User, ArrowLeft, CreditCard, Loader2, AlertCircle, Shield, Clock,
-  ExternalLink, CheckCircle2, ShieldCheck
+  MapPin, Building2, User, ArrowLeft, CreditCard, Loader2, AlertCircle, Shield,
+  ShieldCheck
 } from 'lucide-react';
 
 interface Listing {
@@ -37,7 +37,6 @@ export const ListingDetail: React.FC = () => {
   const [listingLoading, setListingLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [checkoutSuccess, setCheckoutSuccess] = useState<{ url: string; transactionId: string } | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -78,6 +77,13 @@ export const ListingDetail: React.FC = () => {
 
   const handlePayRent = async () => {
     if (!user) {
+      // Signs in in-place (popup) rather than routing through SignInModal's
+      // dashboard-redirect flow, so the tenant lands back on this listing
+      // ready to pay instead of losing their place. Defaulting new sign-ups
+      // to a `tenant` profile here is intentional, not a gap: "Pay Rent" is
+      // a tenant-only action, so anyone reaching it is declaring tenant
+      // intent, and an existing landlord/agent account is never overwritten
+      // since AuthContext only creates a default profile for brand-new uids.
       try {
         await signInWithGoogle();
       } catch {
@@ -103,12 +109,16 @@ export const ListingDetail: React.FC = () => {
 
     try {
       const result = await callApi<{ checkoutUrl: string; transactionId: string }>('checkoutInitiate', { listingId: id! });
-      setCheckoutSuccess({ url: result.data.checkoutUrl, transactionId: result.data.transactionId });
       if (popup) {
         popup.location.href = result.data.checkoutUrl;
       } else {
         window.open(result.data.checkoutUrl, '_blank');
       }
+      // Nomba's hosted checkout doesn't redirect back into RentVault after
+      // payment, so the main tab navigates itself straight to the tracking
+      // page instead of leaving the tenant stranded on the listing page
+      // waiting to notice a "Track Transaction" button.
+      navigate(`/transactions/${result.data.transactionId}`);
     } catch (err: any) {
       popup?.close();
       const parsed = parseFirebaseError(err);
@@ -255,28 +265,7 @@ export const ListingDetail: React.FC = () => {
                 )}
 
                 {/* Success state */}
-                {checkoutSuccess ? (
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-2 p-4 bg-brand-50 border border-brand-100 rounded-2xl text-sm text-brand-700">
-                      <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                      Checkout opened! Complete payment in the Nomba window.
-                    </div>
-                    <button
-                      onClick={() => window.open(checkoutSuccess.url, '_blank')}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-sm font-bold text-slate-700 rounded-2xl transition-colors"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Reopen Checkout
-                    </button>
-                    <button
-                      onClick={() => navigate(`/transactions/${checkoutSuccess.transactionId}`)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-2xl transition-colors shadow-lg shadow-brand-500/20"
-                    >
-                      <Clock className="w-4 h-4" />
-                      Track Transaction
-                    </button>
-                  </div>
-                ) : user && user.role === 'tenant' && !isVerified ? (
+                {user && user.role === 'tenant' && !isVerified ? (
                   <div className="space-y-3">
                     <div className="flex items-start gap-2 p-4 bg-blue-50 border border-blue-100 rounded-2xl text-sm text-blue-700">
                       <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -306,9 +295,14 @@ export const ListingDetail: React.FC = () => {
                   </button>
                 )}
 
-                {!user && (
+                {!user ? (
                   <p className="text-center text-[10px] text-slate-400 mt-4">
-                    You'll be asked to sign in with Google.
+                    You'll be asked to sign in with Google. Payments processed securely via{' '}
+                    <span className="font-bold text-nomba-600">Nomba</span>.
+                  </p>
+                ) : (
+                  <p className="text-center text-[10px] text-slate-400 mt-4">
+                    Payments processed securely via <span className="font-bold text-nomba-600">Nomba</span>.
                   </p>
                 )}
               </div>

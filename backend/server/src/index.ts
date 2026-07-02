@@ -12,7 +12,11 @@ if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config({ path: path.join(__dirname, '../../functions/.env') });
 }
 
-import { config } from './config';
+import { config, assertRequiredConfig } from './config';
+
+// Fail fast on a misconfigured deploy rather than surfacing as an obscure
+// runtime error deep inside a request.
+assertRequiredConfig();
 
 // Must run before importing any route module - each one calls
 // admin.firestore() at its own top level, which throws if the default app

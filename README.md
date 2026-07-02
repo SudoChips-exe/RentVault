@@ -320,12 +320,15 @@ npm run build
 ### Backend Testing
 
 ```bash
-cd backend/functions
-bun test          # business logic unit tests (models, nomba-client, etc.)
-
 cd backend/server
+bun test           # business logic unit tests (models, nomba-client, error-utils)
 bun run build      # typecheck + compile the Express app
 ```
+
+`backend/functions` is no longer a build target - it holds only
+`firestore.rules`, `firestore.indexes.json`, and `storage.rules`, deployed
+via the Firebase CLI command in step 4 below. All backend logic and its
+tests live in `backend/server`.
 
 ### Frontend Testing
 

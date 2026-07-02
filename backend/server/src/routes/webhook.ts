@@ -5,6 +5,7 @@ import { nombaClient } from '../nomba-client';
 import { TRANSACTION_STATUSES } from '../models';
 import { logTransactionStatusChange, logWebhookEvent } from '../audit-logger';
 import { webhookRateLimit } from '../middleware';
+import { config } from '../config';
 
 const db = admin.firestore();
 
@@ -90,11 +91,18 @@ webhookRouter.post('/webhook-listener', webhookRateLimit, express.raw({ type: '*
       case 'checkout.success': {
         const paymentAmount = payload.data?.amount || transaction.amount;
         const paymentReference = payload.data?.payment_reference || payload.data?.reference || '';
+        // Countdown starts once funds actually land in escrow, not at
+        // checkout initiation - read by the landlord/tenant "verification
+        // deadline" countdown UI and by the timeout checker (internal.ts).
+        const verificationDeadline = admin.firestore.Timestamp.fromMillis(
+          Date.now() + config.verification.timeoutHours * 60 * 60 * 1000
+        );
 
         await transactionRef.update({
           status: TRANSACTION_STATUSES.FUNDS_HELD,
           nombaPaymentReference: paymentReference,
           amount: paymentAmount,
+          verificationDeadline,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 

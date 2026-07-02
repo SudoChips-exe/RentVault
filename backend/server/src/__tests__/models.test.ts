@@ -39,60 +39,76 @@ describe('validateSplitPercentages', () => {
 
 describe('validateTransactionStatusTransition', () => {
   test('pending_payment -> funds_held is valid', () => {
-    expect(
-      validateTransactionStatusTransition('pending_payment', 'funds_held')
-    ).toBe(true);
+    expect(validateTransactionStatusTransition('pending_payment', 'funds_held')).toBe(true);
   });
 
   test('funds_held -> verification_submitted is valid', () => {
-    expect(
-      validateTransactionStatusTransition('funds_held', 'verification_submitted')
-    ).toBe(true);
+    expect(validateTransactionStatusTransition('funds_held', 'verification_submitted')).toBe(true);
   });
 
   test('verification_submitted -> verified is valid', () => {
-    expect(
-      validateTransactionStatusTransition('verification_submitted', 'verified')
-    ).toBe(true);
+    expect(validateTransactionStatusTransition('verification_submitted', 'verified')).toBe(true);
   });
 
   test('verification_submitted -> verification_rejected is valid', () => {
+    expect(validateTransactionStatusTransition('verification_submitted', 'verification_rejected')).toBe(true);
+  });
+
+  test('verified -> disbursement_pending is valid', () => {
+    expect(validateTransactionStatusTransition('verified', 'disbursement_pending')).toBe(true);
+  });
+
+  test('refund_initiated -> refunded is valid', () => {
+    expect(validateTransactionStatusTransition('refund_initiated', 'refunded')).toBe(true);
+  });
+
+  test('completed can transition to nothing', () => {
+    expect(validateTransactionStatusTransition('completed', 'funds_held')).toBe(false);
+  });
+
+  test('pending_payment -> verified is invalid (skipping statuses)', () => {
+    expect(validateTransactionStatusTransition('pending_payment', 'verified')).toBe(false);
+  });
+
+  test('refunded cannot transition further', () => {
+    expect(validateTransactionStatusTransition('refunded', 'refund_initiated')).toBe(false);
+  });
+
+  // Regression test: refund.ts previously used a hand-maintained
+  // REFUNDABLE_STATUSES list that omitted verification_timeout, so every
+  // timeout-triggered auto-refund (internal.ts) silently failed its
+  // precondition check. refund.ts now delegates to this function instead.
+  test('verification_timeout -> refund_initiated is valid (auto-refund on timeout)', () => {
     expect(
       validateTransactionStatusTransition(
-        'verification_submitted',
-        'verification_rejected'
+        TRANSACTION_STATUSES.VERIFICATION_TIMEOUT,
+        TRANSACTION_STATUSES.REFUND_INITIATED
       )
     ).toBe(true);
   });
 
-  test('verified -> disbursement_pending is valid', () => {
+  test('verification_rejected -> refund_initiated is valid', () => {
     expect(
-      validateTransactionStatusTransition('verified', 'disbursement_pending')
+      validateTransactionStatusTransition(
+        TRANSACTION_STATUSES.VERIFICATION_REJECTED,
+        TRANSACTION_STATUSES.REFUND_INITIATED
+      )
     ).toBe(true);
   });
 
-  test('refund_initiated -> refunded is valid', () => {
+  test('cannot refund an already-completed transaction', () => {
     expect(
-      validateTransactionStatusTransition('refund_initiated', 'refunded')
-    ).toBe(true);
+      validateTransactionStatusTransition(TRANSACTION_STATUSES.COMPLETED, TRANSACTION_STATUSES.REFUND_INITIATED)
+    ).toBe(false);
   });
 
-  test('completed can transition to nothing', () => {
-    expect(validateTransactionStatusTransition('completed', 'funds_held')).toBe(
+  test('cannot approve verification twice (second concurrent call sees non-submitted status)', () => {
+    // Simulates the race this transition-check now guards against in
+    // verification.ts's verificationApprove: once a transaction is already
+    // `verified`, a second concurrent approve attempt must be rejected.
+    expect(validateTransactionStatusTransition(TRANSACTION_STATUSES.VERIFIED, TRANSACTION_STATUSES.VERIFIED)).toBe(
       false
     );
-  });
-
-  test('pending_payment -> verified is invalid (skipping statuses)', () => {
-    expect(
-      validateTransactionStatusTransition('pending_payment', 'verified')
-    ).toBe(false);
-  });
-
-  test('refunded cannot transition further', () => {
-    expect(
-      validateTransactionStatusTransition('refunded', 'refund_initiated')
-    ).toBe(false);
   });
 });
 

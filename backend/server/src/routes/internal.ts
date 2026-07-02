@@ -3,7 +3,6 @@ import * as admin from 'firebase-admin';
 import { TRANSACTION_STATUSES } from '../models';
 import { logTransactionStatusChange } from '../audit-logger';
 import { processRefund } from '../refund';
-import { config } from '../config';
 import { requireInternalSecret, asyncRoute } from '../middleware';
 
 const db = admin.firestore();
@@ -17,15 +16,10 @@ export const internalRouter = Router();
 internalRouter.post('/internal/check-timeouts', requireInternalSecret, asyncRoute(async (_req, res) => {
   console.log('[TIMEOUT] Checking for expired verifications');
 
-  const verificationTimeoutHours = config.verification.timeoutHours;
-
-  const cutoffDate = new Date();
-  cutoffDate.setHours(cutoffDate.getHours() - verificationTimeoutHours);
-
   const expiredTransactions = await db
     .collection('transactions')
     .where('status', '==', TRANSACTION_STATUSES.FUNDS_HELD)
-    .where('createdAt', '<', cutoffDate)
+    .where('verificationDeadline', '<', new Date())
     .get();
 
   console.log(`[TIMEOUT] Found ${expiredTransactions.size} expired transactions`);

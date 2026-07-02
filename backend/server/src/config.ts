@@ -25,3 +25,35 @@ export const config = {
   internalCronSecret: process.env.INTERNAL_CRON_SECRET || '',
   port: parseInt(process.env.PORT || '3001', 10),
 };
+
+// Called once at boot (see index.ts) so a missing/misconfigured env var
+// fails loudly at startup instead of surfacing later as an obscure runtime
+// error deep inside a request (e.g. a webhook silently failing signature
+// validation because NOMBA_WEBHOOK_SECRET was never set).
+export function assertRequiredConfig(): void {
+  const missing: string[] = [];
+
+  if (!config.firebase.projectId) missing.push('FIREBASE_PROJECT_ID');
+  if (!config.firebase.privateKey) missing.push('FIREBASE_PRIVATE_KEY');
+  if (!config.firebase.clientEmail) missing.push('FIREBASE_CLIENT_EMAIL');
+  if (!config.nomba.parentAccountId) missing.push('NOMBA_PARENT_ACCOUNT_ID');
+  if (!config.nomba.subAccountId) missing.push('NOMBA_SUB_ACCOUNT_ID');
+  if (!config.nomba.webhookSecret) missing.push('NOMBA_WEBHOOK_SECRET');
+  if (!config.platform.nombaAccountId) missing.push('PLATFORM_NOMBA_ACCOUNT_ID');
+  if (!config.internalCronSecret) missing.push('INTERNAL_CRON_SECRET');
+
+  if (config.nomba.env === 'test') {
+    if (!config.nomba.testClientId) missing.push('NOMBA_TEST_CLIENT_ID');
+    if (!config.nomba.testPrivateKey) missing.push('NOMBA_TEST_PRIVATE_KEY');
+  } else {
+    if (!config.nomba.liveClientId) missing.push('NOMBA_LIVE_CLIENT_ID');
+    if (!config.nomba.livePrivateKey) missing.push('NOMBA_LIVE_PRIVATE_KEY');
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `[CONFIG] Missing required environment variable(s): ${missing.join(', ')}. ` +
+      'Set them before starting the server (see README setup instructions).'
+    );
+  }
+}

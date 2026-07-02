@@ -6,7 +6,7 @@ import { formatAmount, formatDate, formatCountdown, getStatusLabel } from '../li
 import {
   ArrowLeft, Clock, CheckCircle2, AlertCircle, Loader2, RefreshCw,
   TrendingUp, RotateCcw, Building2, User, BadgeCheck, DollarSign, Wifi, WifiOff,
-  AlertTriangle
+  AlertTriangle, ExternalLink
 } from 'lucide-react';
 
 interface Transaction {
@@ -24,6 +24,7 @@ interface Transaction {
   };
   verificationDeadline?: any;
   verificationDocumentUrl?: string;
+  nombaCheckoutUrl?: string;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -186,6 +187,26 @@ export const TransactionStatus: React.FC = () => {
           <div className="flex items-center gap-2 p-3 bg-brand-500/10 border border-brand-500/20 rounded-xl mb-5 text-brand-300 text-xs">
             <Wifi className="w-3.5 h-3.5" />
             Reconnected. Live updates active.
+          </div>
+        )}
+
+        {/* Checkout resume banner - covers the case where the tenant's
+            checkout popup was blocked or closed before completing payment
+            (we navigate here automatically right after checkoutInitiate,
+            before there's any confirmation the popup actually opened). */}
+        {tx.status === 'pending_payment' && tx.nombaCheckoutUrl && (
+          <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-2xl mb-5">
+            <Clock className="w-5 h-5 text-blue-500 flex-shrink-0" />
+            <p className="text-blue-700 text-sm font-semibold flex-1">Payment not completed yet.</p>
+            <a
+              href={tx.nombaCheckoutUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors flex-shrink-0"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Continue to Checkout
+            </a>
           </div>
         )}
 

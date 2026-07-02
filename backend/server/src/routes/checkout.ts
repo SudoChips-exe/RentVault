@@ -5,6 +5,7 @@ import { generateTransactionReference, TRANSACTION_STATUSES } from '../models';
 import { logTransactionStatusChange, logNombaApiCall } from '../audit-logger';
 import { config } from '../config';
 import { ApiError } from '../api-error';
+import { isAxiosErrorWithStatus } from '../error-utils';
 import { requireAuth, asyncRoute, AuthedRequest, checkoutRateLimit } from '../middleware';
 
 const db = admin.firestore();
@@ -62,9 +63,10 @@ checkoutRouter.post('/checkoutInitiate', checkoutRateLimit, requireAuth, asyncRo
     checkoutUrl = checkout.checkoutUrl;
 
     await logNombaApiCall('/checkout', transactionReference, 200);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[CHECKOUT] Nomba API error', error);
-    await logNombaApiCall('/checkout', transactionReference, error.response?.status || 500);
+    const status = isAxiosErrorWithStatus(error) ? error.response.status : 500;
+    await logNombaApiCall('/checkout', transactionReference, status);
     throw new ApiError('unavailable', 'Payment provider unavailable, please try again');
   }
 

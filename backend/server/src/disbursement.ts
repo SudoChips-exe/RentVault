@@ -3,6 +3,7 @@ import { nombaClient } from './nomba-client';
 import { calculateDisbursementAmounts, TRANSACTION_STATUSES } from './models';
 import { logTransactionStatusChange, logNombaApiCall } from './audit-logger';
 import { config } from './config';
+import { isAxiosErrorWithStatus, errorMessage } from './error-utils';
 
 const db = admin.firestore();
 
@@ -12,21 +13,6 @@ interface RequiredRecipient {
   amount: number;
   accountId?: string;
   reference: string;
-}
-
-function isAxiosErrorWithStatus(error: unknown): error is { response: { status: number } } {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'response' in error &&
-    typeof (error as { response?: unknown }).response === 'object' &&
-    (error as { response?: { status?: unknown } }).response !== null &&
-    typeof (error as { response: { status?: unknown } }).response.status === 'number'
-  );
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 // Marks the transaction as failed instead of leaving it silently stuck (e.g.

@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Building2, LogOut, User, ChevronDown, Settings, Home } from 'lucide-react';
+import { Building2, LogOut, User, ChevronDown, Settings, Home, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useHeaderTheme } from '../contexts/HeaderThemeContext';
 import { SignInModal } from './SignInModal';
+
+// Mirrors the role-based routing SignInModal uses to send users into the
+// Next.js dashboard portal - tenants land on /tenant, everyone else lands
+// on the portal root where the dashboard's own middleware routes them by role.
+function dashboardUrlForRole(role: string): string {
+  const dashboardUrl = import.meta.env.VITE_DASHBOARD_URL || '/dashboard';
+  return role === 'tenant' ? `${dashboardUrl}/tenant` : dashboardUrl;
+}
 
 export const Navbar: React.FC = () => {
   const { user, firebaseUser, logout, loading } = useAuth();
@@ -94,6 +102,16 @@ export const Navbar: React.FC = () => {
                         <p className={`text-sm font-bold truncate ${isLight ? 'text-slate-900' : 'text-slate-50'}`}>{user.displayName}</p>
                         <p className={`text-xs truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{user.email}</p>
                       </div>
+                      <a
+                        href={dashboardUrlForRole(user.role)}
+                        onClick={() => setMenuOpen(false)}
+                        className={`w-full text-left flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-colors ${
+                          isLight ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-200 hover:bg-slate-800'
+                        }`}
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                        Go to Dashboard
+                      </a>
                       <button
                         onClick={async () => { setMenuOpen(false); await logout(); navigate('/'); }}
                         className={`w-full text-left flex items-center gap-2 px-4 py-2 text-sm transition-colors ${

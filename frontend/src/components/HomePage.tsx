@@ -201,7 +201,7 @@ const FAQS = [
   },
   {
     q: 'How long does the verification process take?',
-    a: 'On average, ownership verification takes 48-72 hours. We work directly with government registries to ensure the data is authentic.',
+    a: 'Landlords have up to 48 hours to submit ownership verification once a payment is held in escrow - if it isn\'t approved in that window, your payment is refunded automatically.',
   },
   {
     q: 'Is my money safe with RentVault?',

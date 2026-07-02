@@ -4,6 +4,7 @@ import { nombaClient } from './nomba-client';
 import { TRANSACTION_STATUSES, generateTransactionReference, validateTransactionStatusTransition } from './models';
 import { logTransactionStatusChange, logNombaApiCall } from './audit-logger';
 import { ApiError } from './api-error';
+import { isAxiosErrorWithStatus, errorMessage } from './error-utils';
 import { requireAuth, asyncRoute, AuthedRequest, sensitiveActionRateLimit } from './middleware';
 
 const db = admin.firestore();
@@ -81,7 +82,7 @@ export async function processRefund(
 
     return { success: true, status: TRANSACTION_STATUSES.REFUND_INITIATED, refundReference };
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = errorMessage(error);
     const status = isAxiosErrorWithStatus(error) ? error.response.status : 500;
     console.error(`[REFUND] Failed for transaction ${transactionId}`, error);
 
@@ -103,17 +104,6 @@ export async function processRefund(
 
     throw new ApiError('internal', `Refund failed for transaction ${transactionId}. Contact support.`);
   }
-}
-
-function isAxiosErrorWithStatus(error: unknown): error is { response: { status: number } } {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'response' in error &&
-    typeof (error as { response?: unknown }).response === 'object' &&
-    (error as { response?: { status?: unknown } }).response !== null &&
-    typeof (error as { response: { status?: unknown } }).response.status === 'number'
-  );
 }
 
 export const refundRouter = Router();
