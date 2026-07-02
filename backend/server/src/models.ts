@@ -44,6 +44,7 @@ export interface Disbursement {
   amount: number;
   nombaTransferReference?: string;
   status: 'transfer_pending' | 'disbursed' | 'transfer_failed' | 'transfer_initiation_failed';
+  failureReason?: 'missing_nomba_account' | 'nomba_transfer_error';
   createdAt: admin.firestore.Timestamp;
   updatedAt: admin.firestore.Timestamp;
 }

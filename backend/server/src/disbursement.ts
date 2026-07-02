@@ -6,6 +6,51 @@ import { config } from './config';
 
 const db = admin.firestore();
 
+interface RequiredRecipient {
+  recipientType: 'landlord' | 'agent' | 'platform';
+  recipientUid: string;
+  amount: number;
+  accountId?: string;
+  reference: string;
+}
+
+function isAxiosErrorWithStatus(error: unknown): error is { response: { status: number } } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error &&
+    typeof (error as { response?: unknown }).response === 'object' &&
+    (error as { response?: { status?: unknown } }).response !== null &&
+    typeof (error as { response: { status?: unknown } }).response.status === 'number'
+  );
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+// Marks the transaction as failed instead of leaving it silently stuck (e.g.
+// at `verified`) when disbursement can't even be attempted - bad split
+// config or an unresolvable amount calculation.
+async function failDisbursement(
+  transactionRef: admin.firestore.DocumentReference,
+  transactionId: string,
+  from: string,
+  reason: string
+): Promise<void> {
+  console.error(`[DISBURSEMENT] ${reason} for transaction ${transactionId}`);
+  await transactionRef.update({
+    status: TRANSACTION_STATUSES.DISBURSEMENT_PARTIAL_FAILURE,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  await logTransactionStatusChange(
+    transactionId,
+    from,
+    TRANSACTION_STATUSES.DISBURSEMENT_PARTIAL_FAILURE,
+    'system'
+  );
+}
+
 // Ported from the Firestore onUpdate trigger `disbursementTrigger` -
 // previously fired automatically when a transaction's status became
 // `verified`. There's exactly one place that ever makes that transition
@@ -23,72 +68,67 @@ export async function runDisbursement(transactionId: string): Promise<void> {
 
   const splitConfig = afterData.splitConfigSnapshot;
   if (!splitConfig || !splitConfig.landlordPercentage) {
-    console.error(`[DISBURSEMENT] Missing split config for transaction ${transactionId}`);
+    await failDisbursement(transactionRef, transactionId, TRANSACTION_STATUSES.VERIFIED, 'Missing split config');
     return;
   }
 
   let amounts: { landlordAmount: number; agentAmount: number; platformAmount: number };
   try {
     amounts = calculateDisbursementAmounts(afterData.amount, splitConfig);
-  } catch (error: any) {
-    console.error(`[DISBURSEMENT] Invalid split config: ${error.message}`);
+  } catch (error: unknown) {
+    await failDisbursement(
+      transactionRef,
+      transactionId,
+      TRANSACTION_STATUSES.VERIFIED,
+      `Invalid split config: ${errorMessage(error)}`
+    );
     return;
   }
 
+  // Resolve every required recipient's payout account up front. Recipients
+  // that can't be resolved (missing nombaAccountId) still get a `disbursements`
+  // entry below with a failed status, instead of being silently omitted -
+  // omitting them let `allDisbursed` checks (here and in webhook.ts) pass
+  // vacuously and mark the transaction `completed` without everyone paid.
   const landlordDoc = await db.collection('users').doc(afterData.landlordUid).get();
-  const landlordData = landlordDoc.data();
-  if (!landlordData?.nombaAccountId) {
-    console.error(`[DISBURSEMENT] Landlord ${afterData.landlordUid} missing nombaAccountId`);
-    return;
-  }
+  const landlordAccountId = landlordDoc.data()?.nombaAccountId as string | undefined;
 
-  const platformNombaAccountId = config.platform.nombaAccountId;
-  if (!platformNombaAccountId) {
-    console.error('[DISBURSEMENT] Platform nombaAccountId not configured');
-    return;
-  }
-
-  const transfers: Array<{
-    amount: number;
-    recipientAccountId: string;
-    reference: string;
-    recipientType: string;
-    recipientUid: string;
-  }> = [];
-
-  const timestamp = Date.now();
-
-  transfers.push({
-    amount: amounts.landlordAmount,
-    recipientAccountId: landlordData.nombaAccountId,
-    reference: `DISP-${transactionId}-LORD-${timestamp}`,
-    recipientType: 'landlord',
-    recipientUid: afterData.landlordUid,
-  });
-
+  let agentAccountId: string | undefined;
   if (afterData.agentUid && amounts.agentAmount > 0) {
     const agentDoc = await db.collection('users').doc(afterData.agentUid).get();
-    const agentData = agentDoc.data();
-    if (agentData?.nombaAccountId) {
-      transfers.push({
-        amount: amounts.agentAmount,
-        recipientAccountId: agentData.nombaAccountId,
-        reference: `DISP-${transactionId}-AGENT-${timestamp}`,
-        recipientType: 'agent',
-        recipientUid: afterData.agentUid,
-      });
-    } else {
-      console.warn(`[DISBURSEMENT] Agent ${afterData.agentUid} missing nombaAccountId, skipping`);
-    }
+    agentAccountId = agentDoc.data()?.nombaAccountId as string | undefined;
   }
 
-  transfers.push({
-    amount: amounts.platformAmount,
-    recipientAccountId: platformNombaAccountId,
-    reference: `DISP-${transactionId}-PLAT-${timestamp}`,
-    recipientType: 'platform',
-    recipientUid: 'platform',
-  });
+  const platformNombaAccountId = config.platform.nombaAccountId || undefined;
+
+  const timestamp = Date.now();
+  const requiredRecipients: RequiredRecipient[] = [
+    {
+      recipientType: 'landlord',
+      recipientUid: afterData.landlordUid,
+      amount: amounts.landlordAmount,
+      accountId: landlordAccountId,
+      reference: `DISP-${transactionId}-LORD-${timestamp}`,
+    },
+    ...(afterData.agentUid && amounts.agentAmount > 0
+      ? [
+          {
+            recipientType: 'agent' as const,
+            recipientUid: afterData.agentUid as string,
+            amount: amounts.agentAmount,
+            accountId: agentAccountId,
+            reference: `DISP-${transactionId}-AGENT-${timestamp}`,
+          },
+        ]
+      : []),
+    {
+      recipientType: 'platform',
+      recipientUid: 'platform',
+      amount: amounts.platformAmount,
+      accountId: platformNombaAccountId,
+      reference: `DISP-${transactionId}-PLAT-${timestamp}`,
+    },
+  ];
 
   await transactionRef.update({
     status: TRANSACTION_STATUSES.DISBURSEMENT_PENDING,
@@ -102,20 +142,35 @@ export async function runDisbursement(transactionId: string): Promise<void> {
     'system'
   );
 
-  const disbursements: Record<string, any> = {};
+  const disbursements: Record<string, Record<string, unknown>> = {};
 
-  for (const transfer of transfers) {
+  for (const recipient of requiredRecipients) {
+    if (!recipient.accountId) {
+      console.error(
+        `[DISBURSEMENT] ${recipient.recipientType} (${recipient.recipientUid}) missing nombaAccountId for transaction ${transactionId}`
+      );
+      disbursements[recipient.recipientType] = {
+        recipientType: recipient.recipientType,
+        amount: recipient.amount,
+        status: 'transfer_initiation_failed',
+        failureReason: 'missing_nomba_account',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+      continue;
+    }
+
     try {
       const result = await nombaClient.initiateTransfer({
-        amount: transfer.amount,
-        reference: transfer.reference,
-        recipientAccountId: transfer.recipientAccountId,
-        narration: `Rent disbursement - ${transfer.recipientType}`,
+        amount: recipient.amount,
+        reference: recipient.reference,
+        recipientAccountId: recipient.accountId,
+        narration: `Rent disbursement - ${recipient.recipientType}`,
       });
 
-      disbursements[transfer.recipientType] = {
-        recipientType: transfer.recipientType,
-        amount: transfer.amount,
+      disbursements[recipient.recipientType] = {
+        recipientType: recipient.recipientType,
+        amount: recipient.amount,
         nombaTransferReference: result.reference,
         status: 'transfer_pending',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -124,33 +179,34 @@ export async function runDisbursement(transactionId: string): Promise<void> {
 
       await logNombaApiCall(
         '/transfers',
-        transfer.reference,
+        recipient.reference,
         200,
-        { recipientType: transfer.recipientType, amount: transfer.amount }
+        { recipientType: recipient.recipientType, amount: recipient.amount }
       );
 
       console.log(
-        `[NOMBA_TRANSFER] ${transfer.recipientType}: ${'₦'}${(transfer.amount / 100).toLocaleString()} (ref: ${transfer.reference})`
+        `[NOMBA_TRANSFER] ${recipient.recipientType}: ${'₦'}${(recipient.amount / 100).toLocaleString()} (ref: ${recipient.reference})`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
-        `[DISBURSEMENT] Transfer initiation failed for ${transfer.recipientType}`,
+        `[DISBURSEMENT] Transfer initiation failed for ${recipient.recipientType}`,
         error
       );
 
-      disbursements[transfer.recipientType] = {
-        recipientType: transfer.recipientType,
-        amount: transfer.amount,
+      disbursements[recipient.recipientType] = {
+        recipientType: recipient.recipientType,
+        amount: recipient.amount,
         status: 'transfer_initiation_failed',
+        failureReason: 'nomba_transfer_error',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
 
       await logNombaApiCall(
         '/transfers',
-        transfer.reference,
-        error.response?.status || 500,
-        { recipientType: transfer.recipientType, error: error.message }
+        recipient.reference,
+        isAxiosErrorWithStatus(error) ? error.response.status : 500,
+        { recipientType: recipient.recipientType, error: errorMessage(error) }
       );
     }
   }
@@ -161,7 +217,7 @@ export async function runDisbursement(transactionId: string): Promise<void> {
   });
 
   const anyFailed = Object.values(disbursements).some(
-    (d: any) => d.status === 'transfer_initiation_failed'
+    (d) => d.status === 'transfer_initiation_failed'
   );
 
   if (anyFailed) {

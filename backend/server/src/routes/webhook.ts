@@ -54,21 +54,20 @@ webhookRouter.post('/webhook-listener', webhookRateLimit, express.raw({ type: '*
 
     await logWebhookEvent(eventType, transactionReference, 'valid', payload);
 
+    // The dedup marker is only written *after* processing succeeds (see
+    // bottom of the switch below) - if it were written up front and
+    // processing then failed, a retried delivery would be swallowed as
+    // "already processed" and the event would be lost for good instead of
+    // safely reprocessed.
     const eventId = payload.id || payload.event_id || '';
-    if (eventId) {
-      const dedupRef = db.collection('webhookEvents').doc(eventId);
+    const dedupRef = eventId ? db.collection('webhookEvents').doc(eventId) : undefined;
+    if (dedupRef) {
       const dedupDoc = await dedupRef.get();
       if (dedupDoc.exists) {
         console.log(`[WEBHOOK] Duplicate event ${eventId}, skipping`);
         res.status(200).send({ received: true, deduplicated: true });
         return;
       }
-      await dedupRef.set({
-        eventId,
-        eventType,
-        transactionReference,
-        processedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
     }
 
     const transactionsQuery = await db
@@ -122,8 +121,8 @@ webhookRouter.post('/webhook-listener', webhookRateLimit, express.raw({ type: '*
         });
 
         const disbursements = (await transactionRef.get()).data()?.disbursements || {};
-        const allDisbursed = Object.values(disbursements as Record<string, any>)
-          .every((d: any) => d.status === 'disbursed');
+        const allDisbursed = Object.values(disbursements as Record<string, { status?: string }>)
+          .every((d) => d.status === 'disbursed');
 
         if (allDisbursed) {
           await transactionRef.update({
@@ -186,13 +185,26 @@ webhookRouter.post('/webhook-listener', webhookRateLimit, express.raw({ type: '*
       }
     }
 
+    if (dedupRef) {
+      await dedupRef.set({
+        eventId,
+        eventType,
+        transactionReference,
+        processedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
     const elapsed = Date.now() - startTime;
     console.log(`[WEBHOOK] Processed in ${elapsed}ms`);
 
     res.status(200).send({ received: true });
   } catch (error) {
+    // Genuine processing failures (e.g. a Firestore write hiccup) get a 5xx
+    // so Nomba retries the delivery - malformed/duplicate/unknown-reference
+    // requests are all handled above with explicit early 200/400 returns and
+    // never reach this catch.
     console.error('[WEBHOOK] Error processing webhook', error);
-    res.status(200).send({ received: true });
+    res.status(500).send({ error: 'internal_error' });
   }
 });
 

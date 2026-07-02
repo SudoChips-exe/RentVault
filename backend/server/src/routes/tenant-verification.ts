@@ -2,7 +2,7 @@ import { Router } from 'express';
 import * as admin from 'firebase-admin';
 import { createAuditLog } from '../audit-logger';
 import { ApiError } from '../api-error';
-import { requireAuth, asyncRoute, AuthedRequest } from '../middleware';
+import { requireAuth, asyncRoute, AuthedRequest, sensitiveActionRateLimit } from '../middleware';
 
 const db = admin.firestore();
 
@@ -19,7 +19,7 @@ async function verifyAdmin(uid: string): Promise<string> {
 
 export const tenantVerificationRouter = Router();
 
-tenantVerificationRouter.post('/tenantVerificationSubmit', requireAuth, asyncRoute(async (req: AuthedRequest, res) => {
+tenantVerificationRouter.post('/tenantVerificationSubmit', requireAuth, sensitiveActionRateLimit, asyncRoute(async (req: AuthedRequest, res) => {
   const uid = req.uid!;
   const userDoc = await db.collection('users').doc(uid).get();
   if (!userDoc.exists) throw new ApiError('permission-denied', 'User profile not found');
@@ -57,7 +57,7 @@ tenantVerificationRouter.post('/tenantVerificationSubmit', requireAuth, asyncRou
   res.json({ success: true, status: 'pending' });
 }));
 
-tenantVerificationRouter.post('/tenantVerificationApprove', requireAuth, asyncRoute(async (req: AuthedRequest, res) => {
+tenantVerificationRouter.post('/tenantVerificationApprove', requireAuth, sensitiveActionRateLimit, asyncRoute(async (req: AuthedRequest, res) => {
   const adminUid = await verifyAdmin(req.uid!);
 
   const { uid } = req.body;
@@ -95,7 +95,7 @@ tenantVerificationRouter.post('/tenantVerificationApprove', requireAuth, asyncRo
   res.json({ success: true, status: 'approved' });
 }));
 
-tenantVerificationRouter.post('/tenantVerificationReject', requireAuth, asyncRoute(async (req: AuthedRequest, res) => {
+tenantVerificationRouter.post('/tenantVerificationReject', requireAuth, sensitiveActionRateLimit, asyncRoute(async (req: AuthedRequest, res) => {
   const adminUid = await verifyAdmin(req.uid!);
 
   const { uid, reason } = req.body;

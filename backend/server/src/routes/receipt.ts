@@ -3,7 +3,7 @@ import * as admin from 'firebase-admin';
 import PDFDocument from 'pdfkit';
 import { formatAmountNaira } from '../models';
 import { ApiError } from '../api-error';
-import { requireAuth, asyncRoute, AuthedRequest } from '../middleware';
+import { requireAuth, asyncRoute, AuthedRequest, sensitiveActionRateLimit } from '../middleware';
 
 const db = admin.firestore();
 
@@ -18,7 +18,7 @@ const RECEIPT_ELIGIBLE_STATUSES = new Set([
 
 export const receiptRouter = Router();
 
-receiptRouter.post('/generateReceipt', requireAuth, asyncRoute(async (req: AuthedRequest, res) => {
+receiptRouter.post('/generateReceipt', requireAuth, sensitiveActionRateLimit, asyncRoute(async (req: AuthedRequest, res) => {
   const uid = req.uid!;
   const { transactionId } = req.body;
   if (!transactionId || typeof transactionId !== 'string') {

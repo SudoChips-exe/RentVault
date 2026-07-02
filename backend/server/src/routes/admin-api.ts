@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as admin from 'firebase-admin';
 import { ApiError } from '../api-error';
-import { requireAuth, asyncRoute, AuthedRequest } from '../middleware';
+import { requireAuth, asyncRoute, AuthedRequest, adminReadRateLimit } from '../middleware';
 
 const db = admin.firestore();
 
@@ -18,7 +18,7 @@ async function verifyAdmin(uid: string): Promise<string> {
 
 export const adminApiRouter = Router();
 
-adminApiRouter.post('/getAuditLogs', requireAuth, asyncRoute(async (req: AuthedRequest, res) => {
+adminApiRouter.post('/getAuditLogs', requireAuth, adminReadRateLimit, asyncRoute(async (req: AuthedRequest, res) => {
   await verifyAdmin(req.uid!);
 
   const data = req.body || {};
@@ -74,7 +74,7 @@ adminApiRouter.post('/getAuditLogs', requireAuth, asyncRoute(async (req: AuthedR
   });
 }));
 
-adminApiRouter.post('/getAllTransactions', requireAuth, asyncRoute(async (req: AuthedRequest, res) => {
+adminApiRouter.post('/getAllTransactions', requireAuth, adminReadRateLimit, asyncRoute(async (req: AuthedRequest, res) => {
   await verifyAdmin(req.uid!);
 
   const data = req.body || {};

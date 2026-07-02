@@ -4,7 +4,7 @@ import { nombaClient } from './nomba-client';
 import { TRANSACTION_STATUSES, generateTransactionReference, validateTransactionStatusTransition } from './models';
 import { logTransactionStatusChange, logNombaApiCall } from './audit-logger';
 import { ApiError } from './api-error';
-import { requireAuth, asyncRoute, AuthedRequest } from './middleware';
+import { requireAuth, asyncRoute, AuthedRequest, sensitiveActionRateLimit } from './middleware';
 
 const db = admin.firestore();
 
@@ -118,7 +118,7 @@ function isAxiosErrorWithStatus(error: unknown): error is { response: { status: 
 
 export const refundRouter = Router();
 
-refundRouter.post('/manualRefund', requireAuth, asyncRoute(async (req: AuthedRequest, res) => {
+refundRouter.post('/manualRefund', requireAuth, sensitiveActionRateLimit, asyncRoute(async (req: AuthedRequest, res) => {
   const uid = req.uid!;
   const userDoc = await db.collection('users').doc(uid).get();
   if (!userDoc.exists) {

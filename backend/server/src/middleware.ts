@@ -29,6 +29,27 @@ export const webhookRateLimit = rateLimit({
   handler: rateLimitHandler,
 });
 
+// Privileged write actions (verification submit/approve/reject, manual
+// refund, receipt generation) - a compromised or malicious token shouldn't
+// be able to hammer money-movement or document-review endpoints.
+export const sensitiveActionRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+});
+
+// Paginated admin read endpoints (transactions, audit logs) - looser than
+// the write limiter since dashboards legitimately poll/paginate these.
+export const adminReadRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+});
+
 export interface AuthedRequest extends Request {
   uid?: string;
 }

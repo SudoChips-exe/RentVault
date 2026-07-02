@@ -3,7 +3,7 @@ import * as admin from 'firebase-admin';
 import { TRANSACTION_STATUSES, validateTransactionStatusTransition, TransactionStatus } from '../models';
 import { logTransactionStatusChange, logVerificationAction } from '../audit-logger';
 import { ApiError } from '../api-error';
-import { requireAuth, asyncRoute, AuthedRequest } from '../middleware';
+import { requireAuth, asyncRoute, AuthedRequest, sensitiveActionRateLimit } from '../middleware';
 import { runDisbursement } from '../disbursement';
 import { processRefund } from '../refund';
 
@@ -11,7 +11,7 @@ const db = admin.firestore();
 
 export const verificationRouter = Router();
 
-verificationRouter.post('/verificationSubmit', requireAuth, asyncRoute(async (req: AuthedRequest, res) => {
+verificationRouter.post('/verificationSubmit', requireAuth, sensitiveActionRateLimit, asyncRoute(async (req: AuthedRequest, res) => {
   const uid = req.uid!;
   const userDoc = await db.collection('users').doc(uid).get();
   if (!userDoc.exists) throw new ApiError('permission-denied', 'User profile not found');
@@ -70,7 +70,7 @@ verificationRouter.post('/verificationSubmit', requireAuth, asyncRoute(async (re
   res.json({ success: true, status: TRANSACTION_STATUSES.VERIFICATION_SUBMITTED });
 }));
 
-verificationRouter.post('/verificationApprove', requireAuth, asyncRoute(async (req: AuthedRequest, res) => {
+verificationRouter.post('/verificationApprove', requireAuth, sensitiveActionRateLimit, asyncRoute(async (req: AuthedRequest, res) => {
   const uid = req.uid!;
   const userDoc = await db.collection('users').doc(uid).get();
   if (!userDoc.exists) throw new ApiError('permission-denied', 'User profile not found');
@@ -124,7 +124,7 @@ verificationRouter.post('/verificationApprove', requireAuth, asyncRoute(async (r
   res.json({ success: true, status: TRANSACTION_STATUSES.VERIFIED });
 }));
 
-verificationRouter.post('/verificationReject', requireAuth, asyncRoute(async (req: AuthedRequest, res) => {
+verificationRouter.post('/verificationReject', requireAuth, sensitiveActionRateLimit, asyncRoute(async (req: AuthedRequest, res) => {
   const uid = req.uid!;
   const userDoc = await db.collection('users').doc(uid).get();
   if (!userDoc.exists) throw new ApiError('permission-denied', 'User profile not found');
