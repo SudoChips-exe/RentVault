@@ -5,13 +5,13 @@ import { generateTransactionReference, TRANSACTION_STATUSES } from '../models';
 import { logTransactionStatusChange, logNombaApiCall } from '../audit-logger';
 import { config } from '../config';
 import { ApiError } from '../api-error';
-import { requireAuth, asyncRoute, AuthedRequest } from '../middleware';
+import { requireAuth, asyncRoute, AuthedRequest, checkoutRateLimit } from '../middleware';
 
 const db = admin.firestore();
 
 export const checkoutRouter = Router();
 
-checkoutRouter.post('/checkoutInitiate', requireAuth, asyncRoute(async (req: AuthedRequest, res) => {
+checkoutRouter.post('/checkoutInitiate', checkoutRateLimit, requireAuth, asyncRoute(async (req: AuthedRequest, res) => {
   const tenantUid = req.uid!;
 
   const userDoc = await db.collection('users').doc(tenantUid).get();

@@ -26,6 +26,10 @@ const DASHBOARDS_DIR = path.join(__dirname, '../../../dashboards');
 
 async function main() {
   const app: Express = express();
+  // Render sits behind a reverse proxy - without this, express-rate-limit
+  // (and req.ip generally) would see the proxy's IP for every request
+  // instead of the real client IP.
+  app.set('trust proxy', 1);
 
   const apiRouter = express.Router();
   // webhook-listener needs the raw body for signature validation, so it must

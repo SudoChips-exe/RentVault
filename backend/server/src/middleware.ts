@@ -1,7 +1,33 @@
 import { NextFunction, Request, Response } from 'express';
 import * as admin from 'firebase-admin';
+import rateLimit from 'express-rate-limit';
 import { ApiError } from './api-error';
 import { config } from './config';
+
+function rateLimitHandler(req: Request, res: Response) {
+  res.status(429).json({ code: 'unavailable', message: 'Too many requests. Please try again shortly.' });
+}
+
+// checkoutInitiate is authenticated but still worth capping - a compromised
+// or malicious token shouldn't be able to spam Nomba checkout creation.
+export const checkoutRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+});
+
+// webhook-listener is unauthenticated and internet-facing (Nomba calls it
+// directly) - generous enough for legitimate webhook bursts, tight enough
+// to blunt abuse from arbitrary traffic hitting the public endpoint.
+export const webhookRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+});
 
 export interface AuthedRequest extends Request {
   uid?: string;
