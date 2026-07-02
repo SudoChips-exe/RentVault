@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../lib/firebase';
+import { callApi } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { formatAmount, formatDate, getStatusLabel, parseFirebaseError } from '../lib/errorHelper';
 import { LayoutDashboard, Loader2, RefreshCw, AlertCircle, Search } from 'lucide-react';
@@ -31,8 +30,7 @@ export default function AdminDashboard() {
 
   const fetchTransactions = useCallback(async () => {
     try {
-      const getTxs = httpsCallable<any, { transactions: Transaction[] }>(functions, 'getAllTransactions');
-      const res = await getTxs();
+      const res = await callApi<{ transactions: Transaction[] }>('getAllTransactions');
       setTransactions(res.data.transactions);
       setError(null);
     } catch (err) {

@@ -15,13 +15,13 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
   const handleTenantSignIn = () => {
     // Redirect to the Next.js dashboard portal, where the tenant dashboard
     // (escrow balance, payments, properties) lives and Tenant Auth is handled.
-    const dashboardUrl = import.meta.env.VITE_DASHBOARD_URL || 'http://localhost:3000';
+    const dashboardUrl = import.meta.env.VITE_DASHBOARD_URL || '/dashboard';
     window.location.href = `${dashboardUrl}/tenant`;
   };
 
   const handleLandlordSignIn = () => {
     // Redirect to Next.js dashboard portal where Landlord Auth is handled
-    const dashboardUrl = import.meta.env.VITE_DASHBOARD_URL || 'http://localhost:3000';
+    const dashboardUrl = import.meta.env.VITE_DASHBOARD_URL || '/dashboard';
     window.location.href = dashboardUrl;
   };
  

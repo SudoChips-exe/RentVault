@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { db, functions } from '../../lib/firebase';
+import { db } from '../../lib/firebase';
+import { callApi } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { formatAmount, parseFirebaseError } from '../../lib/errorHelper';
 import { BadgeCheck, Loader2, CheckCircle2, XCircle, FileText, ExternalLink, AlertCircle } from 'lucide-react';
@@ -62,11 +62,9 @@ function AdminVerificationContent() {
     setError(null);
     try {
       if (approved) {
-        const approve = httpsCallable<{ transactionId: string }, any>(functions, 'verificationApprove');
-        await approve({ transactionId: selectedTx.id });
+        await callApi('verificationApprove', { transactionId: selectedTx.id });
       } else {
-        const reject = httpsCallable<{ transactionId: string }, any>(functions, 'verificationReject');
-        await reject({ transactionId: selectedTx.id });
+        await callApi('verificationReject', { transactionId: selectedTx.id });
       }
       setSelectedTx(null);
     } catch (err) {

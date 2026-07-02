@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { doc, onSnapshot, getDoc } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { db, functions } from '../../../lib/firebase';
+import { db } from '../../../lib/firebase';
+import { callApi } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
 import { formatAmount, formatDate, parseFirebaseError } from '../../../lib/errorHelper';
 import {
@@ -97,11 +97,7 @@ export default function TenantListingDetailPage() {
     const popup = window.open('', '_blank');
 
     try {
-      const initiate = httpsCallable<{ listingId: string }, { checkoutUrl: string; transactionId: string }>(
-        functions,
-        'checkoutInitiate'
-      );
-      const result = await initiate({ listingId: id! });
+      const result = await callApi<{ checkoutUrl: string; transactionId: string }>('checkoutInitiate', { listingId: id! });
       setCheckoutSuccess({ url: result.data.checkoutUrl, transactionId: result.data.transactionId });
       if (popup) {
         popup.location.href = result.data.checkoutUrl;

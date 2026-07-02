@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { collection, query, where, onSnapshot, orderBy, doc, getDoc } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { db, functions } from '../lib/firebase';
+import { db } from '../lib/firebase';
+import { callApi } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import {
   Wallet,
@@ -140,8 +140,7 @@ export default function TenantDashboard() {
     // direct user gesture, then fill in the real URL once it's ready.
     const popup = window.open('', '_blank');
     try {
-      const generate = httpsCallable<{ transactionId: string }, { url: string }>(functions, 'generateReceipt');
-      const result = await generate({ transactionId: latest.id });
+      const result = await callApi<{ url: string }>('generateReceipt', { transactionId: latest.id });
       if (popup) {
         popup.location.href = result.data.url;
       } else {

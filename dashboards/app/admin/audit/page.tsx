@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../../lib/firebase';
+import { callApi } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate, parseFirebaseError } from '../../lib/errorHelper';
 import { ScrollText, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
@@ -25,8 +24,7 @@ export default function AdminAuditLogs() {
 
   const fetchLogs = async () => {
     try {
-      const getLogs = httpsCallable<any, { logs: AuditLog[] }>(functions, 'getAuditLogs');
-      const res = await getLogs();
+      const res = await callApi<{ logs: AuditLog[] }>('getAuditLogs');
       setLogs(res.data.logs);
       setError(null);
     } catch (err) {

@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { db, functions } from '../../lib/firebase';
+import { db } from '../../lib/firebase';
+import { callApi } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { parseFirebaseError } from '../../lib/errorHelper';
 import { ShieldCheck, Loader2, CheckCircle2, XCircle, FileText, ExternalLink, AlertCircle } from 'lucide-react';
@@ -56,8 +56,7 @@ export default function AdminTenantVerificationPage() {
     setActionLoading(true);
     setError(null);
     try {
-      const approve = httpsCallable<{ uid: string }, any>(functions, 'tenantVerificationApprove');
-      await approve({ uid: selected.uid });
+      await callApi('tenantVerificationApprove', { uid: selected.uid });
       setSelected(null);
     } catch (err) {
       setError(parseFirebaseError(err).message);
@@ -71,8 +70,7 @@ export default function AdminTenantVerificationPage() {
     setActionLoading(true);
     setError(null);
     try {
-      const reject = httpsCallable<{ uid: string; reason: string }, any>(functions, 'tenantVerificationReject');
-      await reject({ uid: selected.uid, reason: rejectReason || 'Not specified' });
+      await callApi('tenantVerificationReject', { uid: selected.uid, reason: rejectReason || 'Not specified' });
       setSelected(null);
       setShowRejectForm(false);
       setRejectReason('');

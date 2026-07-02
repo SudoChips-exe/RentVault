@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { httpsCallable } from 'firebase/functions';
-import { storage, functions } from '../../lib/firebase';
+import { storage } from '../../lib/firebase';
+import { callApi } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { parseFirebaseError } from '../../lib/errorHelper';
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, X, Clock, XCircle, ShieldCheck } from 'lucide-react';
@@ -69,11 +69,7 @@ export default function TenantVerificationPage() {
         (p) => setProgress(50 + p * 0.5)
       );
 
-      const submit = httpsCallable<{ idDocumentUrl: string; incomeProofUrl: string }, any>(
-        functions,
-        'tenantVerificationSubmit'
-      );
-      await submit({ idDocumentUrl, incomeProofUrl });
+      await callApi('tenantVerificationSubmit', { idDocumentUrl, incomeProofUrl });
       setSuccess(true);
     } catch (err) {
       setError(parseFirebaseError(err).message);

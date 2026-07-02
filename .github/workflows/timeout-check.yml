@@ -1,0 +1,21 @@
+name: Verification timeout check
+
+# Replaces the Firebase pubsub-scheduled verificationTimeoutScheduler, which
+# only worked on Cloud Functions (Blaze plan). Render's free tier has no
+# built-in cron, so this hits the protected endpoint on a schedule instead -
+# and doubles as a keep-alive ping so the free instance doesn't spin down
+# between demo attempts.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  check-timeouts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call check-timeouts endpoint
+        run: |
+          curl -sf -X POST \
+            -H "X-Internal-Secret: ${{ secrets.INTERNAL_CRON_SECRET }}" \
+            "${{ secrets.RENDER_SERVICE_URL }}/api/internal/check-timeouts"

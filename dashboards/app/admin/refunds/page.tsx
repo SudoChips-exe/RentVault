@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { db, functions } from '../../lib/firebase';
+import { db } from '../../lib/firebase';
+import { callApi } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { formatAmount, parseFirebaseError, formatDate } from '../../lib/errorHelper';
 import { RotateCcw, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
@@ -50,8 +50,7 @@ function AdminRefundsContent() {
     setActionLoading(id);
     setError(null);
     try {
-      const refund = httpsCallable<{ transactionId: string }, any>(functions, 'manualRefund');
-      await refund({ transactionId: id });
+      await callApi('manualRefund', { transactionId: id });
     } catch (err) {
       setError(parseFirebaseError(err).message);
     } finally {

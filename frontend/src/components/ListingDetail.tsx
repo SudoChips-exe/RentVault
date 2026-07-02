@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, getDoc } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { db, functions } from '../firebase';
+import { db } from '../firebase';
+import { callApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { formatAmount, formatDate, parseFirebaseError } from '../lib/errorHelper';
 import {
@@ -102,11 +102,7 @@ export const ListingDetail: React.FC = () => {
     const popup = window.open('', '_blank');
 
     try {
-      const initiate = httpsCallable<{ listingId: string }, { checkoutUrl: string; transactionId: string }>(
-        functions,
-        'checkoutInitiate'
-      );
-      const result = await initiate({ listingId: id! });
+      const result = await callApi<{ checkoutUrl: string; transactionId: string }>('checkoutInitiate', { listingId: id! });
       setCheckoutSuccess({ url: result.data.checkoutUrl, transactionId: result.data.transactionId });
       if (popup) {
         popup.location.href = result.data.checkoutUrl;

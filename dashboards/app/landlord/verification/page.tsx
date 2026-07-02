@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { httpsCallable } from 'firebase/functions';
-import { db, storage, functions } from '../../lib/firebase';
+import { db, storage } from '../../lib/firebase';
+import { callApi } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { formatAmount, parseFirebaseError, formatCountdown } from '../../lib/errorHelper';
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, X } from 'lucide-react';
@@ -73,15 +73,9 @@ export default function VerificationPage() {
         },
         async () => {
           const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-          
-          // 2. Call Function
-          const submitVerification = httpsCallable<{ transactionId: string, documentUrl: string }, any>(
-            functions,
-            'verificationSubmit'
-          );
-          
+
           try {
-            await submitVerification({ transactionId: selectedTx, documentUrl: downloadUrl });
+            await callApi('verificationSubmit', { transactionId: selectedTx, documentUrl: downloadUrl });
             setSuccess(true);
             setFile(null);
             setProgress(0);
