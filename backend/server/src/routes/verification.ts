@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as admin from 'firebase-admin';
-import { TRANSACTION_STATUSES } from '../models';
+import { TRANSACTION_STATUSES, validateTransactionStatusTransition, TransactionStatus } from '../models';
 import { logTransactionStatusChange, logVerificationAction } from '../audit-logger';
 import { ApiError } from '../api-error';
 import { requireAuth, asyncRoute, AuthedRequest } from '../middleware';
@@ -29,31 +29,36 @@ verificationRouter.post('/verificationSubmit', requireAuth, asyncRoute(async (re
     throw new ApiError('invalid-argument', 'documentUrl is required');
   }
 
-  const transactionDoc = await db.collection('transactions').doc(transactionId).get();
-  if (!transactionDoc.exists) throw new ApiError('not-found', 'Transaction not found');
+  const transactionRef = db.collection('transactions').doc(transactionId);
+  const previousStatus = await db.runTransaction(async (tx) => {
+    const transactionDoc = await tx.get(transactionRef);
+    if (!transactionDoc.exists) throw new ApiError('not-found', 'Transaction not found');
 
-  const transaction = transactionDoc.data()!;
-  if (transaction.status !== TRANSACTION_STATUSES.FUNDS_HELD) {
-    throw new ApiError(
-      'failed-precondition',
-      `Transaction must be in funds_held status, current: ${transaction.status}`
-    );
-  }
+    const transaction = transactionDoc.data()!;
+    const isAssociated = transaction.landlordUid === uid || transaction.agentUid === uid;
+    if (!isAssociated) {
+      throw new ApiError('permission-denied', 'You are not associated with this transaction');
+    }
 
-  const isAssociated = transaction.landlordUid === uid || transaction.agentUid === uid;
-  if (!isAssociated) {
-    throw new ApiError('permission-denied', 'You are not associated with this transaction');
-  }
+    if (!validateTransactionStatusTransition(transaction.status, TRANSACTION_STATUSES.VERIFICATION_SUBMITTED)) {
+      throw new ApiError(
+        'failed-precondition',
+        `Transaction must be in funds_held status, current: ${transaction.status}`
+      );
+    }
 
-  await transactionDoc.ref.update({
-    status: TRANSACTION_STATUSES.VERIFICATION_SUBMITTED,
-    verificationDocumentUrl: documentUrl,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    tx.update(transactionRef, {
+      status: TRANSACTION_STATUSES.VERIFICATION_SUBMITTED,
+      verificationDocumentUrl: documentUrl,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return transaction.status as TransactionStatus;
   });
 
   await logTransactionStatusChange(
     transactionId,
-    TRANSACTION_STATUSES.FUNDS_HELD,
+    previousStatus,
     TRANSACTION_STATUSES.VERIFICATION_SUBMITTED,
     uid
   );
@@ -80,20 +85,23 @@ verificationRouter.post('/verificationApprove', requireAuth, asyncRoute(async (r
     throw new ApiError('invalid-argument', 'transactionId is required');
   }
 
-  const transactionDoc = await db.collection('transactions').doc(transactionId).get();
-  if (!transactionDoc.exists) throw new ApiError('not-found', 'Transaction not found');
+  const transactionRef = db.collection('transactions').doc(transactionId);
+  await db.runTransaction(async (tx) => {
+    const transactionDoc = await tx.get(transactionRef);
+    if (!transactionDoc.exists) throw new ApiError('not-found', 'Transaction not found');
 
-  const transaction = transactionDoc.data()!;
-  if (transaction.status !== TRANSACTION_STATUSES.VERIFICATION_SUBMITTED) {
-    throw new ApiError(
-      'failed-precondition',
-      `Transaction must be in verification_submitted status, current: ${transaction.status}`
-    );
-  }
+    const transaction = transactionDoc.data()!;
+    if (!validateTransactionStatusTransition(transaction.status, TRANSACTION_STATUSES.VERIFIED)) {
+      throw new ApiError(
+        'failed-precondition',
+        `Transaction must be in verification_submitted status, current: ${transaction.status}`
+      );
+    }
 
-  await transactionDoc.ref.update({
-    status: TRANSACTION_STATUSES.VERIFIED,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    tx.update(transactionRef, {
+      status: TRANSACTION_STATUSES.VERIFIED,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
   });
 
   await logTransactionStatusChange(
@@ -131,20 +139,23 @@ verificationRouter.post('/verificationReject', requireAuth, asyncRoute(async (re
     throw new ApiError('invalid-argument', 'transactionId is required');
   }
 
-  const transactionDoc = await db.collection('transactions').doc(transactionId).get();
-  if (!transactionDoc.exists) throw new ApiError('not-found', 'Transaction not found');
+  const transactionRef = db.collection('transactions').doc(transactionId);
+  await db.runTransaction(async (tx) => {
+    const transactionDoc = await tx.get(transactionRef);
+    if (!transactionDoc.exists) throw new ApiError('not-found', 'Transaction not found');
 
-  const transaction = transactionDoc.data()!;
-  if (transaction.status !== TRANSACTION_STATUSES.VERIFICATION_SUBMITTED) {
-    throw new ApiError(
-      'failed-precondition',
-      `Transaction must be in verification_submitted status, current: ${transaction.status}`
-    );
-  }
+    const transaction = transactionDoc.data()!;
+    if (!validateTransactionStatusTransition(transaction.status, TRANSACTION_STATUSES.VERIFICATION_REJECTED)) {
+      throw new ApiError(
+        'failed-precondition',
+        `Transaction must be in verification_submitted status, current: ${transaction.status}`
+      );
+    }
 
-  await transactionDoc.ref.update({
-    status: TRANSACTION_STATUSES.VERIFICATION_REJECTED,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    tx.update(transactionRef, {
+      status: TRANSACTION_STATUSES.VERIFICATION_REJECTED,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
   });
 
   await logTransactionStatusChange(
