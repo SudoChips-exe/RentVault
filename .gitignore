@@ -11,6 +11,7 @@
 # Agent Metadata
 .kiro/
 .gemini/
+.claude/
 
 # Dependency directories
 node_modules/
@@ -25,6 +26,7 @@ yarn.lock
 /dashboards/out/
 /dashboards/build/
 /backend/functions/lib/
+/backend/server/dist/
 
 # Next.js
 /.next/

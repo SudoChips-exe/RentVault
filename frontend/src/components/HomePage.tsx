@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useHeaderTheme } from '../contexts/HeaderThemeContext';
-import { ArrowRight, CheckCircle2, ShieldCheck, Zap, Scale, Eye, HelpCircle, X } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ShieldCheck, Zap, Scale, Eye, HelpCircle } from 'lucide-react';
 import { SignInModal } from './SignInModal';
 
 // ─── Refined Product Demo Widget ──────────────────────────────────────────────

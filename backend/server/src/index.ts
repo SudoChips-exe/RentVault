@@ -2,7 +2,29 @@ import path from 'path';
 import express, { Express } from 'express';
 import * as admin from 'firebase-admin';
 import next from 'next';
+
+// Local dev only - Render (and any other real deploy) injects env vars
+// directly, so there's no .env file there and this silently no-ops. Reuses
+// backend/functions/.env rather than duplicating it, since both apps read
+// the same Firebase/Nomba credentials.
+if (process.env.NODE_ENV !== 'production') {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  require('dotenv').config({ path: path.join(__dirname, '../../functions/.env') });
+}
+
 import { config } from './config';
+
+// Must run before importing any route module - each one calls
+// admin.firestore() at its own top level, which throws if the default app
+// isn't initialized yet.
+admin.initializeApp({
+  credential: admin.credential.cert({
+    projectId: config.firebase.projectId,
+    clientEmail: config.firebase.clientEmail,
+    privateKey: config.firebase.privateKey.replace(/\\n/g, '\n'),
+  }),
+});
+
 import { errorHandler } from './middleware';
 import { webhookRouter } from './routes/webhook';
 import { checkoutRouter } from './routes/checkout';
@@ -12,14 +34,6 @@ import { refundRouter } from './refund';
 import { adminApiRouter } from './routes/admin-api';
 import { receiptRouter } from './routes/receipt';
 import { internalRouter } from './routes/internal';
-
-admin.initializeApp({
-  credential: admin.credential.cert({
-    projectId: config.firebase.projectId,
-    clientEmail: config.firebase.clientEmail,
-    privateKey: config.firebase.privateKey.replace(/\\n/g, '\n'),
-  }),
-});
 
 const FRONTEND_DIST = path.join(__dirname, '../../../frontend/dist');
 const DASHBOARDS_DIR = path.join(__dirname, '../../../dashboards');

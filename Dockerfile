@@ -4,28 +4,35 @@
 # (backend/server). Firestore/Auth/Storage stay on Firebase - only this
 # compute layer moved off Cloud Functions, since that requires the paid
 # Blaze plan.
+#
+# Using npm (not bun) for the install step here - bun's hardlink/copyfile
+# extraction proved unreliable in containerized Linux builds (intermittent
+# corrupted/incomplete package extraction for firebase, lucide-react, etc.,
+# reproduced both locally and on Render). npm is slower but far more
+# battle-tested for this. bun.lock isn't consumed here, so versions resolve
+# from package.json ranges rather than being frozen - acceptable for now.
 
-FROM oven/bun:1 AS frontend-build
+FROM node:20-alpine AS frontend-build
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/bun.lock ./
-RUN bun install --frozen-lockfile --backend=copyfile
+COPY frontend/package.json ./
+RUN npm install
 COPY frontend/ ./
-RUN bun run build
+RUN npm run build
 
-FROM oven/bun:1 AS dashboards-build
+FROM node:20-alpine AS dashboards-build
 WORKDIR /app/dashboards
-COPY dashboards/package.json dashboards/bun.lock ./
-RUN bun install --frozen-lockfile --backend=copyfile
+COPY dashboards/package.json ./
+RUN npm install
 COPY dashboards/ ./
 ENV NEXT_BASE_PATH=/dashboard
-RUN bun run build
+RUN npm run build
 
-FROM oven/bun:1 AS server-build
+FROM node:20-alpine AS server-build
 WORKDIR /app/backend/server
-COPY backend/server/package.json backend/server/bun.lock ./
-RUN bun install --frozen-lockfile --backend=copyfile
+COPY backend/server/package.json ./
+RUN npm install
 COPY backend/server/ ./
-RUN bun run build
+RUN npm run build
 
 # --- Runtime ---------------------------------------------------------------
 FROM node:20-alpine AS runtime

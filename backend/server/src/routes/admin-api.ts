@@ -98,9 +98,11 @@ adminApiRouter.post('/getAllTransactions', requireAuth, asyncRoute(async (req: A
     if (t.agentUid) uids.add(t.agentUid);
   });
 
-  const userSnapshots = await db.getAll(
-    ...Array.from(uids).map((uid) => db.collection('users').doc(uid))
-  );
+  // Firestore.getAll() throws if called with zero refs (e.g. no
+  // transactions yet, or none with tenant/landlord/agent uids set).
+  const userSnapshots = uids.size > 0
+    ? await db.getAll(...Array.from(uids).map((uid) => db.collection('users').doc(uid)))
+    : [];
 
   const userMap: Record<string, string> = {};
   userSnapshots.forEach((snap) => {
