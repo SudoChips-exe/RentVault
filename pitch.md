@@ -35,11 +35,13 @@ RentVault has no product without Nomba. Checkout is the entry point that gets fu
 
 This is a working product, not a concept slide:
 
-- **Tenant-facing app** (React + Vite): listing search, listing detail, checkout flow, and a live transaction status view showing the escrow state in real time.
-- **Landlord dashboard** (Next.js 14): listing management, Nomba account setup, verification submission.
-- **Admin dashboard** (Next.js 14): verification approve/reject queue, configurable split-config management, manual refund handling, audit log.
-- **Backend** (Firebase Cloud Functions, TypeScript): checkout initiation, webhook handling, verification logic, disbursement triggering, timeout scheduling, and a full audit trail of every transaction's lifecycle.
-- **Data layer**: Firestore for transactions, listings, split configurations, users, and audit logs; Firebase Storage for verification documents; Firebase Auth with role-based access across tenant, landlord, agent, and admin roles.
+- **Public marketing/listing site** (React + Vite): listing search, listing detail, and a Nomba-branded checkout flow that carries the tenant straight into the Nomba-hosted payment window and back into a live transaction status view — complete with a real-time verification countdown — without them having to remember to check back manually.
+- **Tenant dashboard** (Next.js, part of the same portal as landlord/admin): a home view with escrow balance and lease status at a glance, a payments/transaction history view, a saved-properties view, account settings, and tenant identity/income verification upload — reachable in one click from the public site via a persistent "Go to Dashboard" link once signed in.
+- **Landlord dashboard** (Next.js): listing management, Nomba account setup, verification submission.
+- **Admin dashboard** (Next.js): verification approve/reject queue, configurable split-config management, manual refund handling, and a fully real-time audit log — every dashboard surface now reflects Firestore state live, with no stale "click refresh" views left in the product.
+- **Backend** (Express, TypeScript, deployed as a single Docker service on Render): checkout initiation, signature-verified webhook handling, verification logic, split disbursement, timeout scheduling, and a full audit trail of every transaction's lifecycle. Firestore rules and storage rules still deploy through Firebase; the API itself moved off Cloud Functions to avoid requiring the paid Blaze plan.
+- **Data layer**: Firestore for transactions, listings, split configurations, users, and audit logs; Firebase Storage for verification documents; Firebase Auth with role-based access across tenant, landlord, agent, and admin roles, re-checked server-side on every privileged action.
+- **Hardened money-movement logic**: every transaction status change (verification approve/reject, refund, disbursement) is now wrapped in an atomic Firestore transaction with an explicit state-machine check, closing race conditions that could otherwise double-disburse or double-refund the same transaction under concurrent requests. Disbursement failures (e.g. a recipient missing a payout account) now surface as an explicit failure state instead of silently marking the transaction complete. Sensitive endpoints are rate-limited, required config is validated at boot, and the core payment/refund/disbursement logic has automated test coverage.
 
 ## Market Opportunity
 
@@ -47,7 +49,7 @@ Nigeria's rental market is large, almost entirely informal, and increasingly dig
 
 ## The Ask / What's Next
 
-RentVault is functional end-to-end on Nomba's sandbox environment today. The next steps are hardening the verification workflow for higher document-fraud sophistication (cross-referencing submitted documents against land registry data where APIs exist), expanding beyond a single split-config model to support multi-agent and co-agency listings, and moving from hackathon demo to a pilot with a small set of real Lagos listings to validate the verification turnaround time against actual landlord/agent behavior.
+RentVault is functional end-to-end on Nomba's sandbox environment today, and has already been through a security and reliability hardening pass on the payment, refund, and disbursement paths. The next steps are swapping in live Nomba production credentials for a real pilot, hardening the verification workflow for higher document-fraud sophistication (cross-referencing submitted documents against land registry data where APIs exist), expanding beyond a single split-config model to support multi-agent and co-agency listings, and moving from hackathon demo to a pilot with a small set of real Lagos listings to validate the verification turnaround time against actual landlord/agent behavior.
 
 ## Closing
 
