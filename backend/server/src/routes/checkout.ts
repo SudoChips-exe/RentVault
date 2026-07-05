@@ -45,7 +45,10 @@ checkoutRouter.post('/checkoutInitiate', checkoutRateLimit, requireAuth, asyncRo
   }
 
   const transactionReference = generateTransactionReference();
-  const webhookBaseUrl = config.nomba.webhookBaseUrl;
+  // Nomba's hosted checkout doesn't redirect back into RentVault in
+  // practice (see ListingDetail.tsx) - this is only required by the API and
+  // falls back to the app's catch-all route if Nomba ever does redirect.
+  const appOrigin = config.nomba.webhookBaseUrl.replace(/\/api\/?$/, '');
 
   let checkoutUrl: string;
   try {
@@ -54,7 +57,7 @@ checkoutRouter.post('/checkoutInitiate', checkoutRateLimit, requireAuth, asyncRo
       reference: transactionReference,
       customerEmail: user.email || 'tenant@example.com',
       customerName: user.displayName || 'Tenant',
-      webhookUrl: `${webhookBaseUrl}/webhook-listener`,
+      callbackUrl: appOrigin,
       metadata: {
         listingId,
         tenantUid,

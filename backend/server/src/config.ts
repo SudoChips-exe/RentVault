@@ -13,11 +13,8 @@ export const config = {
     testClientId: process.env.NOMBA_TEST_CLIENT_ID || '',
     testPrivateKey: process.env.NOMBA_TEST_PRIVATE_KEY || '',
     webhookSecret: process.env.NOMBA_WEBHOOK_SECRET || '',
-    baseUrl: process.env.NOMBA_BASE_URL || 'https://api.nomba.com/v1',
+    baseUrl: process.env.NOMBA_BASE_URL || 'https://api.nomba.com',
     webhookBaseUrl: process.env.NOMBA_WEBHOOK_BASE_URL || '',
-  },
-  platform: {
-    nombaAccountId: process.env.PLATFORM_NOMBA_ACCOUNT_ID || '',
   },
   verification: {
     timeoutHours: parseInt(process.env.VERIFICATION_TIMEOUT_HOURS || '48', 10),
@@ -39,7 +36,6 @@ export function assertRequiredConfig(): void {
   if (!config.nomba.parentAccountId) missing.push('NOMBA_PARENT_ACCOUNT_ID');
   if (!config.nomba.subAccountId) missing.push('NOMBA_SUB_ACCOUNT_ID');
   if (!config.nomba.webhookSecret) missing.push('NOMBA_WEBHOOK_SECRET');
-  if (!config.platform.nombaAccountId) missing.push('PLATFORM_NOMBA_ACCOUNT_ID');
   if (!config.internalCronSecret) missing.push('INTERNAL_CRON_SECRET');
 
   if (config.nomba.env === 'test') {

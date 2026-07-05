@@ -228,7 +228,7 @@ reads everything from `process.env` directly (see `backend/server/src/config.ts`
 Key variables: `FIREBASE_PROJECT_ID`, `FIREBASE_PRIVATE_KEY`, `FIREBASE_CLIENT_EMAIL`
 (service account, for the Admin SDK), `NOMBA_ENV`, `NOMBA_BASE_URL`,
 `NOMBA_PARENT_ACCOUNT_ID`, `NOMBA_SUB_ACCOUNT_ID`, `NOMBA_TEST_CLIENT_ID`/`NOMBA_TEST_PRIVATE_KEY`,
-`NOMBA_WEBHOOK_SECRET`, `PLATFORM_NOMBA_ACCOUNT_ID`, `NOMBA_WEBHOOK_BASE_URL`,
+`NOMBA_WEBHOOK_SECRET`, `NOMBA_WEBHOOK_BASE_URL`,
 and `INTERNAL_CRON_SECRET` (protects the `/api/internal/check-timeouts` endpoint).
 
 ### 4. Deploy Backend + Frontend + Dashboards (Render)
@@ -259,9 +259,16 @@ since Cloud Functions requires Blaze to deploy at all:
 
 ### 5. Configure Nomba Webhook
 
-1. Go to [Nomba Dashboard > Webhooks](https://dashboard.nomba.com/webhooks)
+1. Go to Nomba Dashboard -> Developer -> Webhook Setup
 2. Add webhook URL: `https://rentvault-xxxx.onrender.com/api/webhook-listener`
-3. Subscribe to events: `checkout.success`, `transfer.success`, `transfer.failed`, `refund.complete`
+   (this is configured once here, not sent per-request by the API)
+3. Set the signature key shown there as `NOMBA_WEBHOOK_SECRET`
+4. Nomba delivers `payment_success`, `payout_success`, `payout_failed`, and
+   `payment_reversal` events - `backend/server/src/routes/webhook.ts` handles
+   these. Verify the payload shape against a real sandbox test delivery
+   before going live; Nomba's public docs don't show a checkout-specific
+   example, so the reference-matching fallback chain in `webhook.ts` is
+   unconfirmed for that event.
 
 ### 6. Setup Frontend (Public Site)
 

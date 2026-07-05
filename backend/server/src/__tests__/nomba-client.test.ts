@@ -1,6 +1,36 @@
 import { describe, expect, test, beforeAll } from 'bun:test';
 import { NombaClient } from '../nomba-client';
 
+// Builds a webhook payload + matching signature the way Nomba actually
+// shapes them (see developer.nomba.com/docs/api-basics/webhook), not the
+// event/data.reference shape this file used to assume.
+function signedPayload(secret: string, overrides: Record<string, unknown> = {}) {
+  const timestamp = '2026-01-01T00:00:00Z';
+  const body = {
+    event_type: 'payment_success',
+    requestId: 'req-123',
+    data: {
+      merchant: { userId: 'user-1', walletId: 'wallet-1' },
+      transaction: {
+        transactionId: 'txn-1',
+        type: 'checkout',
+        time: '2026-01-01T00:00:00Z',
+        responseCode: '',
+        merchantTxRef: 'RENT-123456-ABC123',
+      },
+    },
+    ...overrides,
+  };
+  const payload = JSON.stringify(body);
+  const parsed = JSON.parse(payload);
+  const merchant = parsed.data.merchant;
+  const transaction = parsed.data.transaction;
+  const hashingPayload = `${parsed.event_type}:${parsed.requestId}:${merchant.userId}:${merchant.walletId}:${transaction.transactionId}:${transaction.type}:${transaction.time}:${transaction.responseCode}:${timestamp}`;
+  const crypto = require('crypto');
+  const signature = crypto.createHmac('sha256', secret).update(hashingPayload).digest('base64');
+  return { payload, signature, timestamp };
+}
+
 describe('NombaClient webhook signature validation', () => {
   let client: NombaClient;
 
@@ -11,68 +41,46 @@ describe('NombaClient webhook signature validation', () => {
       clientId: 'test_client',
       privateKey: 'test_key',
       webhookSecret: 'test_webhook_secret',
-      baseUrl: 'https://api.sandbox.nomba.com/v1',
+      baseUrl: 'https://sandbox.nomba.com',
     });
   });
 
   test('validates correct signature', () => {
-    const payload = JSON.stringify({
-      event: 'checkout.success',
-      data: { reference: 'RENT-123456-ABC123' },
-    });
-    const crypto = require('crypto');
-    const signature = crypto.createHmac('sha256', 'test_webhook_secret').update(payload).digest('hex');
-
-    expect(client.validateWebhookSignature(payload, signature)).toBe(true);
+    const { payload, signature, timestamp } = signedPayload('test_webhook_secret');
+    expect(client.validateWebhookSignature(payload, signature, timestamp)).toBe(true);
   });
 
   test('rejects invalid signature', () => {
-    const payload = JSON.stringify({
-      event: 'checkout.success',
-      data: { reference: 'RENT-123456-ABC123' },
-    });
-
-    expect(client.validateWebhookSignature(payload, 'invalid_signature')).toBe(false);
+    const { payload, timestamp } = signedPayload('test_webhook_secret');
+    expect(client.validateWebhookSignature(payload, 'invalid_signature', timestamp)).toBe(false);
   });
 
   test('rejects empty signature', () => {
-    const payload = JSON.stringify({
-      event: 'checkout.success',
-      data: { reference: 'RENT-123456-ABC123' },
-    });
-
-    expect(client.validateWebhookSignature(payload, '')).toBe(false);
+    const { payload, timestamp } = signedPayload('test_webhook_secret');
+    expect(client.validateWebhookSignature(payload, '', timestamp)).toBe(false);
   });
 
   test('rejects tampered payload', () => {
-    const crypto = require('crypto');
-    const original = JSON.stringify({ event: 'checkout.success', data: { reference: 'RENT-TEST-REF' } });
-    const sig = crypto.createHmac('sha256', 'test_webhook_secret').update(original).digest('hex');
-    const tampered = JSON.stringify({ event: 'checkout.success', data: { reference: 'RENT-TAMPERED' } });
+    const { payload, signature, timestamp } = signedPayload('test_webhook_secret');
+    const tampered = payload.replace('txn-1', 'txn-2');
+    expect(client.validateWebhookSignature(tampered, signature, timestamp)).toBe(false);
+  });
 
-    expect(client.validateWebhookSignature(tampered, sig)).toBe(false);
+  test('rejects mismatched timestamp', () => {
+    const { payload, signature } = signedPayload('test_webhook_secret');
+    expect(client.validateWebhookSignature(payload, signature, '2026-06-01T00:00:00Z')).toBe(false);
   });
 
   test('signature is deterministic for same payload', () => {
-    const payload = JSON.stringify({
-      event: 'checkout.success',
-      data: { reference: 'RENT-123456-ABC123' },
-    });
-    const crypto = require('crypto');
-    const sig1 = crypto.createHmac('sha256', 'test_webhook_secret').update(payload).digest('hex');
-    const sig2 = crypto.createHmac('sha256', 'test_webhook_secret').update(payload).digest('hex');
-
-    expect(sig1).toBe(sig2);
+    const first = signedPayload('test_webhook_secret');
+    const second = signedPayload('test_webhook_secret');
+    expect(first.signature).toBe(second.signature);
   });
 
   test('different payload produces different signature', () => {
-    const crypto = require('crypto');
-    const payload1 = JSON.stringify({ event: 'checkout.success' });
-    const payload2 = JSON.stringify({ event: 'transfer.success' });
-    const sig1 = crypto.createHmac('sha256', 'test_webhook_secret').update(payload1).digest('hex');
-    const sig2 = crypto.createHmac('sha256', 'test_webhook_secret').update(payload2).digest('hex');
-
-    expect(sig1).not.toBe(sig2);
+    const a = signedPayload('test_webhook_secret', { event_type: 'payment_success' });
+    const b = signedPayload('test_webhook_secret', { event_type: 'payout_success' });
+    expect(a.signature).not.toBe(b.signature);
   });
 
   test('fails closed when webhook secret is not configured', () => {
@@ -82,8 +90,8 @@ describe('NombaClient webhook signature validation', () => {
       clientId: 'test_client',
       privateKey: 'test_key',
       webhookSecret: '',
-      baseUrl: 'https://api.sandbox.nomba.com/v1',
+      baseUrl: 'https://sandbox.nomba.com',
     });
-    expect(unconfigured.validateWebhookSignature('{}', 'anything')).toBe(false);
+    expect(unconfigured.validateWebhookSignature('{}', 'anything', '2026-01-01T00:00:00Z')).toBe(false);
   });
 });

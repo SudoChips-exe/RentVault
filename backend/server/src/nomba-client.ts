@@ -26,8 +26,10 @@ interface RefundResponse {
 }
 
 interface TokenResponse {
-  access_token: string;
-  expires_in: number;
+  data: {
+    access_token: string;
+    expiresAt: string;
+  };
 }
 
 export class NombaClient {
@@ -49,7 +51,7 @@ export class NombaClient {
         ? config.nomba.testPrivateKey
         : config.nomba.livePrivateKey) || '',
       webhookSecret: customConfig?.webhookSecret || config.nomba.webhookSecret || '',
-      baseUrl: customConfig?.baseUrl || config.nomba.baseUrl || 'https://api.nomba.com/v1',
+      baseUrl: customConfig?.baseUrl || config.nomba.baseUrl || 'https://api.nomba.com',
     };
 
     this.client = axios.create({
@@ -68,13 +70,21 @@ export class NombaClient {
     }
 
     try {
-      const response = await axios.post<TokenResponse>(`${this.config.baseUrl}/auth/token`, {
-        client_id: this.config.clientId,
-        private_key: this.config.privateKey,
-      });
+      const response = await axios.post<TokenResponse>(
+        `${this.config.baseUrl}/v1/auth/token/issue`,
+        {
+          grant_type: 'client_credentials',
+          client_id: this.config.clientId,
+          client_secret: this.config.privateKey,
+        },
+        { headers: { accountId: this.config.parentAccountId } }
+      );
 
-      this.accessToken = response.data.access_token;
-      this.tokenExpiry = Date.now() + (response.data.expires_in - 60) * 1000;
+      this.accessToken = response.data.data.access_token;
+      // expiresAt is an ISO-8601 UTC timestamp, not a seconds-from-now
+      // duration - subtract a minute so we refresh slightly before Nomba
+      // actually expires it.
+      this.tokenExpiry = Date.parse(response.data.data.expiresAt) - 60_000;
 
       this.client.defaults.headers.common['Authorization'] = `Bearer ${this.accessToken}`;
       return this.accessToken!;
@@ -95,26 +105,30 @@ export class NombaClient {
     reference: string;
     customerEmail: string;
     customerName: string;
-    webhookUrl: string;
+    callbackUrl: string;
     metadata?: Record<string, unknown>;
   }): Promise<CheckoutResponse> {
     return this.withRetry(async () => {
-      const response = await this.request<{ data: { checkout_url: string; reference: string } }>(
-        'POST', '/checkout', {
-          amount: params.amount,
-          reference: params.reference,
-          sub_account_id: this.config.subAccountId,
-          customer: {
-            email: params.customerEmail,
-            name: params.customerName,
+      // Nomba's webhook URL is configured once in the dashboard (Developer ->
+      // Webhook Setup), not per-request - there's no webhook_url field on
+      // this endpoint. callbackUrl is only where Nomba's hosted checkout
+      // redirects the browser after payment.
+      const response = await this.request<{ data: { checkoutLink: string; orderReference: string } }>(
+        'POST', '/v1/checkout/order', {
+          order: {
+            orderReference: params.reference,
+            customerEmail: params.customerEmail,
+            amount: params.amount,
+            currency: 'NGN',
+            accountId: this.config.subAccountId,
+            callbackUrl: params.callbackUrl,
+            orderMetaData: params.metadata,
           },
-          webhook_url: params.webhookUrl,
-          metadata: params.metadata,
         },
       );
       return {
-        checkoutUrl: response.data.checkout_url,
-        reference: response.data.reference || params.reference,
+        checkoutUrl: response.data.checkoutLink,
+        reference: response.data.orderReference || params.reference,
       };
     }, 'createCheckout');
   }
@@ -126,12 +140,13 @@ export class NombaClient {
     narration?: string;
   }): Promise<TransferResponse> {
     return this.withRetry(async () => {
-      const response = await this.request<{ data: { reference: string; status: string } }>(
-        'POST', '/transfers', {
+      // reference doubles as merchantTxRef, which Nomba treats as an
+      // idempotency key - it must stay unique per transfer attempt.
+      const response = await this.request<{ data: { reference?: string; status?: string } }>(
+        'POST', '/v1/transfers/wallet', {
           amount: params.amount,
-          reference: params.reference,
-          sub_account_id: this.config.subAccountId,
-          recipient: params.recipientAccountId,
+          merchantTxRef: params.reference,
+          receiverAccountId: params.recipientAccountId,
           narration: params.narration || 'Rent disbursement',
         },
       );
@@ -148,35 +163,67 @@ export class NombaClient {
     reference: string;
   }): Promise<RefundResponse> {
     return this.withRetry(async () => {
-      const response = await this.request<{ data: { reference: string; status: string } }>(
-        'POST', '/refunds', {
-          payment_reference: params.paymentReference,
+      // The refund endpoint doesn't echo back a reference/status - it just
+      // confirms whether the refund request itself was accepted.
+      const response = await this.request<{ data: { success: boolean; message?: string } }>(
+        'POST', '/v1/checkout/refund', {
+          transactionId: params.paymentReference,
           amount: params.amount,
-          reference: params.reference,
-          sub_account_id: this.config.subAccountId,
         },
       );
       return {
-        reference: response.data.reference || params.reference,
-        status: response.data.status || 'pending',
+        reference: params.reference,
+        status: response.data.success ? 'pending' : 'failed',
       };
     }, 'initiateRefund');
   }
 
-  validateWebhookSignature(payload: string, signature: string): boolean {
+  // Nomba doesn't sign the raw body - it signs a colon-joined string of
+  // specific fields pulled out of it, base64-encoded (see
+  // developer.nomba.com/docs/api-basics/webhook). rawBody is parsed here
+  // rather than passed in pre-parsed so a malformed payload just fails
+  // verification instead of throwing before the signature check runs.
+  validateWebhookSignature(rawBody: string, signature: string, timestamp: string): boolean {
     if (!this.config.webhookSecret) {
       console.error('[NOMBA] Webhook secret not configured');
       return false;
     }
+    if (!signature || !timestamp) {
+      return false;
+    }
+
+    let hashingPayload: string;
+    try {
+      const parsed = JSON.parse(rawBody);
+      const merchant = parsed.data?.merchant || {};
+      const transaction = parsed.data?.transaction || {};
+      const eventType = parsed.event_type || '';
+      const requestId = parsed.requestId || '';
+      const userId = merchant.userId || '';
+      const walletId = merchant.walletId || '';
+      const transactionId = transaction.transactionId || '';
+      const transactionType = transaction.type || '';
+      const transactionTime = transaction.time || '';
+      let responseCode = transaction.responseCode ?? '';
+      if (responseCode === 'null') responseCode = '';
+
+      hashingPayload = `${eventType}:${requestId}:${userId}:${walletId}:${transactionId}:${transactionType}:${transactionTime}:${responseCode}:${timestamp}`;
+    } catch {
+      return false;
+    }
+
     const crypto = require('crypto');
     const expectedSignature = crypto
       .createHmac('sha256', this.config.webhookSecret)
-      .update(payload)
-      .digest('hex');
+      .update(hashingPayload)
+      .digest('base64');
+
     try {
-      return crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(expectedSignature)
+      const signatureBuf = Buffer.from(signature, 'base64');
+      const expectedBuf = Buffer.from(expectedSignature, 'base64');
+      return (
+        signatureBuf.length === expectedBuf.length &&
+        crypto.timingSafeEqual(signatureBuf, expectedBuf)
       );
     } catch {
       return false;

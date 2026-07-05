@@ -17,18 +17,19 @@ webhookRouter.post('/webhook-listener', webhookRateLimit, express.raw({ type: '*
   const startTime = Date.now();
 
   try {
-    const signature = req.headers['x-nomba-signature'] as string;
+    const signature = req.headers['nomba-signature'] as string;
+    const timestamp = req.headers['nomba-timestamp'] as string;
     const rawBody = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : JSON.stringify(req.body);
 
-    if (!signature) {
-      console.error('[WEBHOOK] Missing signature header');
+    if (!signature || !timestamp) {
+      console.error('[WEBHOOK] Missing signature or timestamp header');
       const parsedForLog = safeParse(rawBody);
       await logWebhookEvent('unknown', 'unknown', 'missing_signature', parsedForLog);
       res.status(400).send({ error: 'Missing signature' });
       return;
     }
 
-    const isValid = nombaClient.validateWebhookSignature(rawBody, signature);
+    const isValid = nombaClient.validateWebhookSignature(rawBody, signature, timestamp);
     if (!isValid) {
       console.error('[WEBHOOK] Invalid signature');
       const parsedForLog = safeParse(rawBody);
@@ -38,12 +39,18 @@ webhookRouter.post('/webhook-listener', webhookRateLimit, express.raw({ type: '*
     }
 
     const payload = JSON.parse(rawBody);
-    const eventType: string = payload.event || payload.event_type || payload.type;
-    const transactionReference: string =
-      payload.data?.reference ||
-      payload.reference ||
-      payload.data?.transaction_reference ||
-      '';
+    // Real Nomba event names (see developer.nomba.com/docs/api-basics/webhook)
+    // - not the checkout.success/transfer.success/refund.complete names this
+    // handler previously assumed.
+    const eventType: string = payload.event_type || '';
+    const merchant = payload.data?.merchant || {};
+    const txn = payload.data?.transaction || {};
+    // No confirmed example of a card/checkout webhook payload was available
+    // when this was written (Nomba's docs only show a virtual-account
+    // example) - verify this fallback chain against a real sandbox test
+    // delivery before relying on it in production.
+    const orderReference: string =
+      txn.merchantTxRef || txn.orderReference || txn.sessionId || txn.aliasAccountReference || '';
 
     if (!eventType) {
       console.warn('[WEBHOOK] Unknown event type', payload);
@@ -51,16 +58,16 @@ webhookRouter.post('/webhook-listener', webhookRateLimit, express.raw({ type: '*
       return;
     }
 
-    console.log(`[WEBHOOK] Received ${eventType} for ${transactionReference}`);
+    console.log(`[WEBHOOK] Received ${eventType} for ${orderReference}`);
 
-    await logWebhookEvent(eventType, transactionReference, 'valid', payload);
+    await logWebhookEvent(eventType, orderReference, 'valid', payload);
 
     // The dedup marker is only written *after* processing succeeds (see
     // bottom of the switch below) - if it were written up front and
     // processing then failed, a retried delivery would be swallowed as
     // "already processed" and the event would be lost for good instead of
     // safely reprocessed.
-    const eventId = payload.id || payload.event_id || '';
+    const eventId = payload.requestId || '';
     const dedupRef = eventId ? db.collection('webhookEvents').doc(eventId) : undefined;
     if (dedupRef) {
       const dedupDoc = await dedupRef.get();
@@ -71,26 +78,25 @@ webhookRouter.post('/webhook-listener', webhookRateLimit, express.raw({ type: '*
       }
     }
 
-    const transactionsQuery = await db
-      .collection('transactions')
-      .where('transactionReference', '==', transactionReference)
-      .limit(1)
-      .get();
-
-    if (transactionsQuery.empty) {
-      console.warn(`[WEBHOOK] Unknown transaction reference: ${transactionReference}`, payload);
-      res.status(200).send({ received: true });
-      return;
-    }
-
-    const transactionDoc = transactionsQuery.docs[0];
-    const transactionRef = transactionDoc.ref;
-    const transaction = transactionDoc.data();
-
     switch (eventType) {
-      case 'checkout.success': {
-        const paymentAmount = payload.data?.amount || transaction.amount;
-        const paymentReference = payload.data?.payment_reference || payload.data?.reference || '';
+      case 'payment_success': {
+        const transactionsQuery = await db
+          .collection('transactions')
+          .where('transactionReference', '==', orderReference)
+          .limit(1)
+          .get();
+
+        if (transactionsQuery.empty) {
+          console.warn(`[WEBHOOK] Unknown transaction reference: ${orderReference}`, payload);
+          res.status(200).send({ received: true });
+          return;
+        }
+
+        const transactionDoc = transactionsQuery.docs[0];
+        const transactionRef = transactionDoc.ref;
+        const transaction = transactionDoc.data();
+
+        const paymentAmount = txn.transactionAmount || transaction.amount;
         // Countdown starts once funds actually land in escrow, not at
         // checkout initiation - read by the landlord/tenant "verification
         // deadline" countdown UI and by the timeout checker (internal.ts).
@@ -100,7 +106,7 @@ webhookRouter.post('/webhook-listener', webhookRateLimit, express.raw({ type: '*
 
         await transactionRef.update({
           status: TRANSACTION_STATUSES.FUNDS_HELD,
-          nombaPaymentReference: paymentReference,
+          nombaPaymentReference: txn.transactionId || '',
           amount: paymentAmount,
           verificationDeadline,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -113,14 +119,52 @@ webhookRouter.post('/webhook-listener', webhookRateLimit, express.raw({ type: '*
           `webhook:${eventId}`
         );
 
-        console.log(`[WEBHOOK] Payment confirmed for ${transactionReference}, status -> funds_held`);
+        console.log(`[WEBHOOK] Payment confirmed for ${orderReference}, status -> funds_held`);
         break;
       }
 
-      case 'transfer.success': {
-        const transferReference = payload.data?.reference || payload.reference || '';
-        const recipientType = payload.data?.recipient_type || '';
-        void transferReference;
+      case 'payout_success':
+      case 'payout_failed': {
+        // Disbursement transfers use our own reference scheme
+        // `DISP-{transactionId}-{LORD|AGENT|PLAT}-{timestamp}` (see
+        // disbursement.ts) so the transactionId and recipient are parsed
+        // straight out of merchantTxRef instead of looked up by query -
+        // Nomba has no concept of our landlord/agent/platform split.
+        const match = /^DISP-(.+)-(LORD|AGENT|PLAT)-\d+$/.exec(txn.merchantTxRef || '');
+        if (!match) {
+          console.warn(`[WEBHOOK] Unrecognized payout reference: ${txn.merchantTxRef}`, payload);
+          res.status(200).send({ received: true });
+          return;
+        }
+        const [, transactionId, tag] = match;
+        const recipientType = { LORD: 'landlord', AGENT: 'agent', PLAT: 'platform' }[tag]!;
+
+        const transactionRef = db.collection('transactions').doc(transactionId);
+        const transactionSnap = await transactionRef.get();
+        if (!transactionSnap.exists) {
+          console.warn(`[WEBHOOK] Unknown transaction ${transactionId} for payout ${txn.merchantTxRef}`);
+          res.status(200).send({ received: true });
+          return;
+        }
+
+        if (eventType === 'payout_failed') {
+          await transactionRef.update({
+            [`disbursements.${recipientType}.status`]: 'transfer_failed',
+            [`disbursements.${recipientType}.updatedAt`]: admin.firestore.FieldValue.serverTimestamp(),
+            status: TRANSACTION_STATUSES.DISBURSEMENT_PARTIAL_FAILURE,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          await logTransactionStatusChange(
+            transactionId,
+            TRANSACTION_STATUSES.DISBURSEMENT_PENDING,
+            TRANSACTION_STATUSES.DISBURSEMENT_PARTIAL_FAILURE,
+            `webhook:${eventId}`
+          );
+
+          console.error(`[WEBHOOK] Transfer failed for ${transactionId}, recipient: ${recipientType}`);
+          break;
+        }
 
         await transactionRef.update({
           [`disbursements.${recipientType}.status`]: 'disbursed',
@@ -139,40 +183,33 @@ webhookRouter.post('/webhook-listener', webhookRateLimit, express.raw({ type: '*
           });
 
           await logTransactionStatusChange(
-            transactionDoc.id,
+            transactionId,
             TRANSACTION_STATUSES.DISBURSEMENT_PENDING,
             TRANSACTION_STATUSES.COMPLETED,
             `webhook:${eventId}`
           );
 
-          console.log(`[WEBHOOK] All transfers completed for ${transactionReference}`);
+          console.log(`[WEBHOOK] All transfers completed for ${transactionId}`);
         }
         break;
       }
 
-      case 'transfer.failed': {
-        const failedRecipientType = payload.data?.recipient_type || '';
+      case 'payment_reversal': {
+        const transactionsQuery = await db
+          .collection('transactions')
+          .where('transactionReference', '==', orderReference)
+          .limit(1)
+          .get();
 
-        await transactionRef.update({
-          [`disbursements.${failedRecipientType}.status`]: 'transfer_failed',
-          [`disbursements.${failedRecipientType}.updatedAt`]: admin.firestore.FieldValue.serverTimestamp(),
-          status: TRANSACTION_STATUSES.DISBURSEMENT_PARTIAL_FAILURE,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
+        if (transactionsQuery.empty) {
+          console.warn(`[WEBHOOK] Unknown transaction reference: ${orderReference}`, payload);
+          res.status(200).send({ received: true });
+          return;
+        }
 
-        await logTransactionStatusChange(
-          transactionDoc.id,
-          TRANSACTION_STATUSES.DISBURSEMENT_PENDING,
-          TRANSACTION_STATUSES.DISBURSEMENT_PARTIAL_FAILURE,
-          `webhook:${eventId}`
-        );
+        const transactionDoc = transactionsQuery.docs[0];
 
-        console.error(`[WEBHOOK] Transfer failed for ${transactionReference}, recipient: ${failedRecipientType}`);
-        break;
-      }
-
-      case 'refund.complete': {
-        await transactionRef.update({
+        await transactionDoc.ref.update({
           status: TRANSACTION_STATUSES.REFUNDED,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
@@ -184,12 +221,12 @@ webhookRouter.post('/webhook-listener', webhookRateLimit, express.raw({ type: '*
           `webhook:${eventId}`
         );
 
-        console.log(`[WEBHOOK] Refund completed for ${transactionReference}`);
+        console.log(`[WEBHOOK] Refund completed for ${orderReference}`);
         break;
       }
 
       default: {
-        console.log(`[WEBHOOK] Unhandled event type: ${eventType} for ${transactionReference}`);
+        console.log(`[WEBHOOK] Unhandled event type: ${eventType} for ${orderReference}`);
       }
     }
 
@@ -197,7 +234,7 @@ webhookRouter.post('/webhook-listener', webhookRateLimit, express.raw({ type: '*
       await dedupRef.set({
         eventId,
         eventType,
-        transactionReference,
+        orderReference,
         processedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
     }

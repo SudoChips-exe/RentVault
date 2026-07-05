@@ -85,8 +85,6 @@ export async function runDisbursement(transactionId: string): Promise<void> {
     agentAccountId = agentDoc.data()?.nombaAccountId as string | undefined;
   }
 
-  const platformNombaAccountId = config.platform.nombaAccountId || undefined;
-
   const timestamp = Date.now();
   const requiredRecipients: RequiredRecipient[] = [
     {
@@ -107,13 +105,6 @@ export async function runDisbursement(transactionId: string): Promise<void> {
           },
         ]
       : []),
-    {
-      recipientType: 'platform',
-      recipientUid: 'platform',
-      amount: amounts.platformAmount,
-      accountId: platformNombaAccountId,
-      reference: `DISP-${transactionId}-PLAT-${timestamp}`,
-    },
   ];
 
   await transactionRef.update({
@@ -128,7 +119,19 @@ export async function runDisbursement(transactionId: string): Promise<void> {
     'system'
   );
 
-  const disbursements: Record<string, Record<string, unknown>> = {};
+  // The platform's cut never leaves the sub-account rent was collected into
+  // (see order.accountId in nomba-client.ts's createCheckout), so unlike
+  // landlord/agent it needs no transfer - it's marked disbursed immediately
+  // rather than routed through the transfer loop below.
+  const disbursements: Record<string, Record<string, unknown>> = {
+    platform: {
+      recipientType: 'platform',
+      amount: amounts.platformAmount,
+      status: 'disbursed',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+  };
 
   for (const recipient of requiredRecipients) {
     if (!recipient.accountId) {
