@@ -18,6 +18,17 @@ import { config, assertRequiredConfig } from './config';
 // runtime error deep inside a request.
 assertRequiredConfig();
 
+// Normalizes whatever shape the private key arrives in as an env var - a
+// literal "\n"-escaped single line (the usual .env format), a real
+// multi-line value (common when pasted into a host's dashboard textarea),
+// or either of those with stray \r from a Windows clipboard mixed in. OpenSSL
+// 3's PEM parser is far stricter than OpenSSL 1.1 about exactly this kind of
+// malformed-but-"close enough" input (this is what "error:1E08010C:DECODER
+// routines::unsupported" from firebase-admin/gRPC actually means in practice).
+function normalizePrivateKey(key: string): string {
+  return key.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim();
+}
+
 // Must run before importing any route module - each one calls
 // admin.firestore() at its own top level, which throws if the default app
 // isn't initialized yet.
@@ -25,7 +36,7 @@ admin.initializeApp({
   credential: admin.credential.cert({
     projectId: config.firebase.projectId,
     clientEmail: config.firebase.clientEmail,
-    privateKey: config.firebase.privateKey.replace(/\\n/g, '\n'),
+    privateKey: normalizePrivateKey(config.firebase.privateKey),
   }),
 });
 

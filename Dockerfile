@@ -110,5 +110,11 @@ ENV NODE_ENV=production
 # during `next build`) or the runtime config falls out of sync with the
 # basePath that was actually baked into the build.
 ENV NEXT_BASE_PATH=/dashboard
+# Node 17+ defaults to OpenSSL 3, which moved several algorithms (used by
+# google-auth-library/gRPC's self-signed-JWT auth for Firestore) behind a
+# "legacy" provider that isn't loaded by default - this is what
+# "error:1E08010C:DECODER routines::unsupported" / "Getting metadata from
+# plugin failed" actually is, independent of Alpine vs Debian.
+ENV NODE_OPTIONS=--openssl-legacy-provider
 EXPOSE 3001
 CMD ["node", "backend/server/dist/index.js"]
