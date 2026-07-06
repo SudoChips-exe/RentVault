@@ -89,7 +89,14 @@ export function errorHandler(
   if (err instanceof ApiError) {
     return res.status(err.status).json({ code: err.code, message: err.message });
   }
+  const asError = err as { stack?: string; cause?: unknown; code?: unknown; details?: unknown };
   console.error('[SERVER] Unhandled error', err);
+  // gRPC ServiceErrors (e.g. the Firestore "DECODER routines::unsupported"
+  // crash) print as a flat {code, details, metadata} object via console.error
+  // with no visible JS stack or nested cause - log these explicitly in case
+  // there's a wrapped cause with the actual underlying crypto error.
+  if (asError?.stack) console.error('[SERVER] Error stack:', asError.stack);
+  if (asError?.cause) console.error('[SERVER] Error cause:', asError.cause);
   return res.status(500).json({ code: 'internal', message: 'Server error. Please try again.' });
 }
 

@@ -29,6 +29,32 @@ function normalizePrivateKey(key: string): string {
   return key.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim();
 }
 
+const normalizedPrivateKey = normalizePrivateKey(config.firebase.privateKey);
+
+// Diagnostic only - none of this leaks the key body itself (PEM
+// header/footer/line-count aren't secret), but it's enough to tell whether
+// the deployed env var is actually well-formed PEM without guessing blind
+// again. Two prior fixes (Alpine->Debian base image, --openssl-legacy-provider)
+// didn't resolve the "DECODER routines::unsupported" gRPC crash on Firestore
+// calls, so the next data point needs to come from the actual runtime, not
+// another local repro that can't reproduce it.
+const keyLines = normalizedPrivateKey.split('\n');
+console.log('[BOOT] Runtime:', {
+  nodeVersion: process.version,
+  arch: process.arch,
+  platform: process.platform,
+  opensslVersion: process.versions.openssl,
+});
+console.log('[BOOT] Private key diagnostic:', {
+  length: normalizedPrivateKey.length,
+  lineCount: keyLines.length,
+  firstLine: keyLines[0],
+  lastLine: keyLines[keyLines.length - 1],
+  startsWithHeader: normalizedPrivateKey.startsWith('-----BEGIN PRIVATE KEY-----'),
+  endsWithFooter: normalizedPrivateKey.endsWith('-----END PRIVATE KEY-----'),
+  hasCarriageReturns: config.firebase.privateKey.includes('\r'),
+});
+
 // Must run before importing any route module - each one calls
 // admin.firestore() at its own top level, which throws if the default app
 // isn't initialized yet.
@@ -36,7 +62,7 @@ admin.initializeApp({
   credential: admin.credential.cert({
     projectId: config.firebase.projectId,
     clientEmail: config.firebase.clientEmail,
-    privateKey: normalizePrivateKey(config.firebase.privateKey),
+    privateKey: normalizedPrivateKey,
   }),
 });
 
