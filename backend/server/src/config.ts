@@ -13,7 +13,14 @@ export const config = {
     testClientId: process.env.NOMBA_TEST_CLIENT_ID || '',
     testPrivateKey: process.env.NOMBA_TEST_PRIVATE_KEY || '',
     webhookSecret: process.env.NOMBA_WEBHOOK_SECRET || '',
-    baseUrl: process.env.NOMBA_BASE_URL || 'https://api.nomba.com',
+    // Derived from NOMBA_ENV unless explicitly overridden - a real production
+    // bug came from NOMBA_BASE_URL being left pointed at sandbox.nomba.com
+    // after NOMBA_ENV was switched to "live", silently sending live
+    // credentials to the sandbox API (checkouts succeeded, but as fake
+    // sandbox transactions - no real money ever moved). See the hard check
+    // in assertRequiredConfig below.
+    baseUrl: process.env.NOMBA_BASE_URL ||
+      (process.env.NOMBA_ENV === 'test' ? 'https://sandbox.nomba.com' : 'https://api.nomba.com'),
     webhookBaseUrl: process.env.NOMBA_WEBHOOK_BASE_URL || '',
   },
   verification: {
@@ -54,9 +61,26 @@ export function assertRequiredConfig(): void {
     if (!config.nomba.livePrivateKey) missing.push('NOMBA_LIVE_PRIVATE_KEY');
   }
 
+  // Hard-fail, not a warning - this exact mismatch caused checkouts to
+  // silently succeed against Nomba's sandbox using live credentials, meaning
+  // no real money was ever actually collected despite NOMBA_ENV=live.
+  const baseUrlLooksSandbox = config.nomba.baseUrl.includes('sandbox');
+  if (config.nomba.env !== 'test' && baseUrlLooksSandbox) {
+    missing.push(
+      `NOMBA_BASE_URL (currently "${config.nomba.baseUrl}") points at sandbox while ` +
+      'NOMBA_ENV=live - set it to https://api.nomba.com or remove it entirely'
+    );
+  }
+  if (config.nomba.env === 'test' && !baseUrlLooksSandbox) {
+    missing.push(
+      `NOMBA_BASE_URL (currently "${config.nomba.baseUrl}") doesn't point at sandbox while ` +
+      'NOMBA_ENV=test - set it to https://sandbox.nomba.com or remove it entirely'
+    );
+  }
+
   if (missing.length > 0) {
     throw new Error(
-      `[CONFIG] Missing required environment variable(s): ${missing.join(', ')}. ` +
+      `[CONFIG] Missing or invalid environment variable(s): ${missing.join(', ')}. ` +
       'Set them before starting the server (see README setup instructions).'
     );
   }

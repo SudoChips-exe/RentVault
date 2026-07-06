@@ -100,6 +100,24 @@ export class NombaClient {
     return response.data;
   }
 
+  // This app stores money in kobo everywhere internally (see
+  // formatAmountNaira in models.ts) to avoid floating-point drift in split
+  // calculations, but Nomba's API takes naira (major unit, 2 decimals) - a
+  // real production bug came from sending the raw kobo integer straight
+  // through, overcharging every checkout by 100x. Convert only at this
+  // boundary, never upstream. Checkout's docs show amount as an explicit
+  // decimal *string* (e.g. "10000.00"); refund's docs type it as a plain
+  // number - transfer's exact type isn't confirmed in Nomba's docs, so it's
+  // treated the same as refund's number convention until a real transfer
+  // confirms otherwise.
+  private koboToNairaString(kobo: number): string {
+    return (kobo / 100).toFixed(2);
+  }
+
+  private koboToNairaNumber(kobo: number): number {
+    return Number((kobo / 100).toFixed(2));
+  }
+
   async createCheckout(params: {
     amount: number;
     reference: string;
@@ -118,7 +136,7 @@ export class NombaClient {
           order: {
             orderReference: params.reference,
             customerEmail: params.customerEmail,
-            amount: params.amount,
+            amount: this.koboToNairaString(params.amount),
             currency: 'NGN',
             accountId: this.config.subAccountId,
             callbackUrl: params.callbackUrl,
@@ -144,7 +162,7 @@ export class NombaClient {
       // idempotency key - it must stay unique per transfer attempt.
       const response = await this.request<{ data: { reference?: string; status?: string } }>(
         'POST', '/v1/transfers/wallet', {
-          amount: params.amount,
+          amount: this.koboToNairaNumber(params.amount),
           merchantTxRef: params.reference,
           receiverAccountId: params.recipientAccountId,
           narration: params.narration || 'Rent disbursement',
@@ -168,7 +186,7 @@ export class NombaClient {
       const response = await this.request<{ data: { success: boolean; message?: string } }>(
         'POST', '/v1/checkout/refund', {
           transactionId: params.paymentReference,
-          amount: params.amount,
+          amount: this.koboToNairaNumber(params.amount),
         },
       );
       return {
