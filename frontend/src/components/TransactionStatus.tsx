@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
+import { callApi } from '../lib/api';
 import { formatAmount, formatDate, formatCountdown, getStatusLabel } from '../lib/errorHelper';
 import {
   ArrowLeft, Clock, CheckCircle2, AlertCircle, Loader2, RefreshCw,
@@ -71,6 +72,22 @@ export const TransactionStatus: React.FC = () => {
     const interval = setInterval(tick, 60000);
     return () => clearInterval(interval);
   }, [tx?.verificationDeadline]);
+
+  // Reconciles payment status directly against Nomba while waiting on
+  // checkout, instead of only relying on the webhook - the Firestore
+  // onSnapshot listener above picks up the resulting status change on its
+  // own, which naturally stops this effect once status leaves pending_payment.
+  useEffect(() => {
+    if (tx?.status !== 'pending_payment' || !id) return;
+    const poll = () => {
+      callApi('checkPaymentStatus', { transactionId: id }).catch((err) => {
+        console.error('[TX_STATUS] Payment status check failed:', err);
+      });
+    };
+    poll();
+    const interval = setInterval(poll, 5000);
+    return () => clearInterval(interval);
+  }, [tx?.status, id]);
 
   // Load disbursements directly from the transaction document's map field
   // (backend writes them as tx.disbursements = { landlord: {...}, agent: {...}, platform: {...} })

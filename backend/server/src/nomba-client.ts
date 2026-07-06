@@ -178,6 +178,26 @@ export class NombaClient {
     }, 'initiateRefund');
   }
 
+  // Reconciliation fallback for confirming a payment without relying on the
+  // webhook - filters this sub-account's transactions by our own reference,
+  // so it works even without Nomba dashboard access to register a webhook.
+  // Returns null if Nomba has no record of it yet (e.g. checkout was created
+  // but the tenant hasn't paid).
+  async findTransactionByReference(
+    orderReference: string
+  ): Promise<{ status: string; amount: number; nombaTransactionId: string } | null> {
+    return this.withRetry(async () => {
+      const response = await this.request<{
+        data: { results: Array<{ id: string; status: string; amount: number }> };
+      }>('POST', `/v1/transactions/accounts/${this.config.subAccountId}`, { orderReference });
+
+      const match = response.data.results[0];
+      if (!match) return null;
+
+      return { status: match.status, amount: match.amount, nombaTransactionId: match.id };
+    }, 'findTransactionByReference');
+  }
+
   // Nomba doesn't sign the raw body - it signs a colon-joined string of
   // specific fields pulled out of it, base64-encoded (see
   // developer.nomba.com/docs/api-basics/webhook). rawBody is parsed here

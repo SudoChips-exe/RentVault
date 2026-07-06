@@ -19,3 +19,12 @@ jobs:
           curl -sf -X POST \
             -H "X-Internal-Secret: ${{ secrets.INTERNAL_CRON_SECRET }}" \
             "${{ secrets.RENDER_SERVICE_URL }}/api/internal/check-timeouts"
+      # Fallback for payments the frontend's own polling (checkPaymentStatus)
+      # never confirms because the tenant closed the tab - reconciliation
+      # sweep, not the webhook, since webhook setup needs Nomba dashboard
+      # access this project doesn't have yet.
+      - name: Call reconcile-payments endpoint
+        run: |
+          curl -sf -X POST \
+            -H "X-Internal-Secret: ${{ secrets.INTERNAL_CRON_SECRET }}" \
+            "${{ secrets.RENDER_SERVICE_URL }}/api/internal/reconcile-payments"

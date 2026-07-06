@@ -42,7 +42,6 @@ export function assertRequiredConfig(): void {
   if (!config.firebase.clientEmail) missing.push('FIREBASE_CLIENT_EMAIL');
   if (!config.nomba.parentAccountId) missing.push('NOMBA_PARENT_ACCOUNT_ID');
   if (!config.nomba.subAccountId) missing.push('NOMBA_SUB_ACCOUNT_ID');
-  if (!config.nomba.webhookSecret) missing.push('NOMBA_WEBHOOK_SECRET');
   if (!config.supabase.url) missing.push('SUPABASE_URL');
   if (!config.supabase.anonKey) missing.push('SUPABASE_ANON_KEY');
   if (!config.internalCronSecret) missing.push('INTERNAL_CRON_SECRET');
@@ -59,6 +58,19 @@ export function assertRequiredConfig(): void {
     throw new Error(
       `[CONFIG] Missing required environment variable(s): ${missing.join(', ')}. ` +
       'Set them before starting the server (see README setup instructions).'
+    );
+  }
+
+  // Not required to boot - reconciliation polling (reconcile.ts,
+  // internal.ts) confirms payments without it, which matters since setting
+  // this up needs Nomba dashboard access this project doesn't have yet. But
+  // any real webhook delivery fails signature validation until it's set, so
+  // this is worth a loud reminder rather than silence.
+  if (!config.nomba.webhookSecret) {
+    console.warn(
+      '[CONFIG] NOMBA_WEBHOOK_SECRET is not set - webhook deliveries will fail ' +
+      'signature validation. Payment confirmation still works via reconciliation ' +
+      'polling in the meantime (see reconcile.ts).'
     );
   }
 }

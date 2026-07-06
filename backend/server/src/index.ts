@@ -38,6 +38,7 @@ import { refundRouter } from './refund';
 import { adminApiRouter } from './routes/admin-api';
 import { receiptRouter } from './routes/receipt';
 import { internalRouter } from './routes/internal';
+import { reconcileRouter } from './routes/reconcile';
 
 const FRONTEND_DIST = path.join(__dirname, '../../../frontend/dist');
 const DASHBOARDS_DIR = path.join(__dirname, '../../../dashboards');
@@ -62,6 +63,7 @@ async function main() {
   apiRouter.use(adminApiRouter);
   apiRouter.use(receiptRouter);
   apiRouter.use(internalRouter);
+  apiRouter.use(reconcileRouter);
   app.use('/api', apiRouter);
 
   const nextApp = next({ dev: false, dir: DASHBOARDS_DIR });

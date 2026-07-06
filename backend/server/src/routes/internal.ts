@@ -3,11 +3,48 @@ import * as admin from 'firebase-admin';
 import { TRANSACTION_STATUSES } from '../models';
 import { logTransactionStatusChange } from '../audit-logger';
 import { processRefund } from '../refund';
+import { nombaClient } from '../nomba-client';
+import { confirmPaymentReceived } from '../payment-confirmation';
 import { requireInternalSecret, asyncRoute } from '../middleware';
 
 const db = admin.firestore();
 
 export const internalRouter = Router();
+
+// Catches payments for tenants who closed the tab before checkPaymentStatus
+// polling (reconcile.ts) could confirm it - same reconciliation fallback,
+// swept across every still-pending transaction instead of just one.
+internalRouter.post('/internal/reconcile-payments', requireInternalSecret, asyncRoute(async (_req, res) => {
+  console.log('[RECONCILE] Sweeping pending_payment transactions');
+
+  const pending = await db
+    .collection('transactions')
+    .where('status', '==', TRANSACTION_STATUSES.PENDING_PAYMENT)
+    .get();
+
+  let confirmed = 0;
+  for (const doc of pending.docs) {
+    const transaction = doc.data();
+    try {
+      const match = await nombaClient.findTransactionByReference(transaction.transactionReference);
+      if (match && match.status === 'SUCCESS') {
+        const didConfirm = await confirmPaymentReceived(
+          doc.id,
+          match.amount,
+          match.nombaTransactionId,
+          'reconciliation:cron'
+        );
+        if (didConfirm) confirmed++;
+      }
+    } catch (error) {
+      console.error(`[RECONCILE] Failed to check transaction ${doc.id}`, error);
+    }
+  }
+
+  console.log(`[RECONCILE] Checked ${pending.size}, confirmed ${confirmed}`);
+
+  res.json({ checked: pending.size, confirmed });
+}));
 
 // Ported from the pubsub-scheduled verificationTimeoutScheduler (every 15
 // min). Render's free tier has no cron jobs, so this is triggered externally

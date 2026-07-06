@@ -227,8 +227,16 @@ reads everything from `process.env` directly (see `backend/server/src/config.ts`
 Key variables: `FIREBASE_PROJECT_ID`, `FIREBASE_PRIVATE_KEY`, `FIREBASE_CLIENT_EMAIL`
 (service account, for the Admin SDK), `NOMBA_ENV`, `NOMBA_BASE_URL`,
 `NOMBA_PARENT_ACCOUNT_ID`, `NOMBA_SUB_ACCOUNT_ID`, `NOMBA_TEST_CLIENT_ID`/`NOMBA_TEST_PRIVATE_KEY`,
-`NOMBA_WEBHOOK_SECRET`, `NOMBA_WEBHOOK_BASE_URL`,
-and `INTERNAL_CRON_SECRET` (protects the `/api/internal/check-timeouts` endpoint).
+`NOMBA_WEBHOOK_BASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+and `INTERNAL_CRON_SECRET` (protects the `/api/internal/check-timeouts` and
+`/api/internal/reconcile-payments` endpoints).
+
+`NOMBA_WEBHOOK_SECRET` is not required to boot - reconciliation polling
+(`backend/server/src/routes/reconcile.ts`, plus the cron sweep in
+`internal.ts`) confirms payments without it, which matters until Nomba
+dashboard access is available to actually set up the webhook. Set it once
+you have it; until then the server just logs a warning and any real webhook
+delivery fails signature validation harmlessly.
 
 ### 4. Deploy Backend + Frontend + Dashboards (Render)
 
