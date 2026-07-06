@@ -19,6 +19,13 @@ export const config = {
   verification: {
     timeoutHours: parseInt(process.env.VERIFICATION_TIMEOUT_HOURS || '48', 10),
   },
+  // Document storage (receipts) - Supabase Storage, not Firebase Storage,
+  // since a Firebase Storage bucket now requires the paid Blaze plan even to
+  // stay within its free-tier limits.
+  supabase: {
+    url: process.env.SUPABASE_URL || '',
+    anonKey: process.env.SUPABASE_ANON_KEY || '',
+  },
   internalCronSecret: process.env.INTERNAL_CRON_SECRET || '',
   port: parseInt(process.env.PORT || '3001', 10),
 };
@@ -36,6 +43,8 @@ export function assertRequiredConfig(): void {
   if (!config.nomba.parentAccountId) missing.push('NOMBA_PARENT_ACCOUNT_ID');
   if (!config.nomba.subAccountId) missing.push('NOMBA_SUB_ACCOUNT_ID');
   if (!config.nomba.webhookSecret) missing.push('NOMBA_WEBHOOK_SECRET');
+  if (!config.supabase.url) missing.push('SUPABASE_URL');
+  if (!config.supabase.anonKey) missing.push('SUPABASE_ANON_KEY');
   if (!config.internalCronSecret) missing.push('INTERNAL_CRON_SECRET');
 
   if (config.nomba.env === 'test') {

@@ -38,7 +38,7 @@ A web application that enables secure rent payments with automatic escrow, landl
 - Tailwind CSS (Styling) - Using a shared brand palette (Emerald/Nomba) across both applications.
 - Firebase SDK (Client-side integration)
 
-**Deployment:** all three surfaces (marketing/tenant frontend, dashboards portal, backend API) are built and served from one Render Web Service - the Express server serves the Vite build as static files, embeds the Next.js dashboards app under `/dashboard`, and exposes the API under `/api`. See `Dockerfile` at the repo root. Firestore rules/indexes and Storage rules still deploy separately via the Firebase CLI (`firebase deploy --only firestore:rules,firestore:indexes,storage`), which doesn't require Blaze.
+**Deployment:** all three surfaces (marketing/tenant frontend, dashboards portal, backend API) are built and served from one Render Web Service - the Express server serves the Vite build as static files, embeds the Next.js dashboards app under `/dashboard`, and exposes the API under `/api`. See `Dockerfile` at the repo root. Firestore rules/indexes still deploy separately via the Firebase CLI (`firebase deploy --only firestore:rules,firestore:indexes`), which doesn't require Blaze. Document storage (verification uploads, receipts) uses Supabase Storage instead of Firebase Storage, since a Storage bucket now requires Blaze too.
 
 ### System Flow
 
@@ -129,11 +129,10 @@ rentvault/
 │   │   │   └── middleware.ts             # Auth verification, rate limiting, error handling
 │   │   └── package.json
 │   ├── functions/                # Legacy Cloud Functions source - kept only for
-│   │   │                          # firestore.rules/indexes and storage.rules, which
-│   │   │                          # still deploy via the Firebase CLI (no Blaze needed)
+│   │   │                          # firestore.rules/indexes, which still deploy
+│   │   │                          # via the Firebase CLI (no Blaze needed)
 │   │   ├── firestore.rules
-│   │   ├── firestore.indexes.json
-│   │   └── storage.rules
+│   │   └── firestore.indexes.json
 │   └── .firebaserc
 ├── frontend/                   # React/Vite Public Site
 │   ├── src/
@@ -233,11 +232,11 @@ and `INTERNAL_CRON_SECRET` (protects the `/api/internal/check-timeouts` endpoint
 
 ### 4. Deploy Backend + Frontend + Dashboards (Render)
 
-Firestore rules/indexes and Storage rules deploy via the Firebase CLI as
-before (this doesn't require the paid Blaze plan):
+Firestore rules/indexes deploy via the Firebase CLI as before (this doesn't
+require the paid Blaze plan):
 
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes,storage
+firebase deploy --only firestore:rules,firestore:indexes
 ```
 
 Everything else - the Express API, the Vite frontend, and the Next.js
@@ -283,7 +282,6 @@ cat > .env << EOF
 VITE_FIREBASE_API_KEY=your_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 EOF
@@ -308,7 +306,6 @@ cat > .env.local << EOF
 NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 EOF
@@ -333,9 +330,12 @@ bun run build      # typecheck + compile the Express app
 ```
 
 `backend/functions` is no longer a build target - it holds only
-`firestore.rules`, `firestore.indexes.json`, and `storage.rules`, deployed
-via the Firebase CLI command in step 4 below. All backend logic and its
-tests live in `backend/server`.
+`firestore.rules` and `firestore.indexes.json`, deployed via the Firebase
+CLI command in step 4 below. Document storage (verification uploads,
+receipts) uses Supabase Storage instead of Firebase Storage, since a
+Firebase Storage bucket now requires the paid Blaze plan even to stay
+within its free tier. All backend logic and its tests live in
+`backend/server`.
 
 ### Frontend Testing
 

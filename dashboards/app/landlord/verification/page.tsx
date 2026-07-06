@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../../lib/firebase';
+import { uploadDocument } from '../../lib/supabase';
+import { db } from '../../lib/firebase';
 import { callApi } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { formatAmount, parseFirebaseError, formatCountdown } from '../../lib/errorHelper';
@@ -57,39 +57,25 @@ export default function VerificationPage() {
     try {
       // 1. Upload to Storage
       const ext = file.name.split('.').pop();
-      const storageRef = ref(storage, `verifications/${selectedTx}_${Date.now()}.${ext}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      setProgress(10);
+      const downloadUrl = await uploadDocument(file, `verifications/${selectedTx}_${Date.now()}.${ext}`);
+      setProgress(100);
 
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setProgress(p);
-        },
-        (err) => {
-          console.error('Upload failed:', err);
-          setError('Failed to upload file to storage.');
-          setUploading(false);
-        },
-        async () => {
-          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-
-          try {
-            await callApi('verificationSubmit', { transactionId: selectedTx, documentUrl: downloadUrl });
-            setSuccess(true);
-            setFile(null);
-            setProgress(0);
-            setSelectedTx('');
-          } catch (fnErr) {
-            const parsed = parseFirebaseError(fnErr);
-            setError(parsed.message);
-          } finally {
-            setUploading(false);
-          }
-        }
-      );
+      try {
+        await callApi('verificationSubmit', { transactionId: selectedTx, documentUrl: downloadUrl });
+        setSuccess(true);
+        setFile(null);
+        setProgress(0);
+        setSelectedTx('');
+      } catch (fnErr) {
+        const parsed = parseFirebaseError(fnErr);
+        setError(parsed.message);
+      } finally {
+        setUploading(false);
+      }
     } catch (err: any) {
-      setError('An unexpected error occurred.');
+      console.error('Upload failed:', err);
+      setError('Failed to upload file to storage.');
       setUploading(false);
     }
   };

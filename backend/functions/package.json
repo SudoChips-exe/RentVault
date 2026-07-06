@@ -1,5 +1,5 @@
 {
   "name": "rentvault-firebase-config",
   "private": true,
-  "description": "No longer a Cloud Functions codebase - the deployed backend is backend/server. This directory now only holds firestore.rules, firestore.indexes.json, and storage.rules, deployed via `firebase deploy --only firestore:rules,firestore:indexes,storage` (see root README)."
+  "description": "No longer a Cloud Functions codebase - the deployed backend is backend/server. This directory now only holds firestore.rules and firestore.indexes.json, deployed via `firebase deploy --only firestore:rules,firestore:indexes` (see root README)."
 }

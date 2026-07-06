@@ -1,11 +1,15 @@
 import { Router } from 'express';
 import * as admin from 'firebase-admin';
+import { createClient } from '@supabase/supabase-js';
 import PDFDocument from 'pdfkit';
 import { formatAmountNaira } from '../models';
 import { ApiError } from '../api-error';
+import { config } from '../config';
 import { requireAuth, asyncRoute, AuthedRequest, sensitiveActionRateLimit } from '../middleware';
 
 const db = admin.firestore();
+const supabase = createClient(config.supabase.url, config.supabase.anonKey);
+const DOCUMENTS_BUCKET = 'documents';
 
 const RECEIPT_ELIGIBLE_STATUSES = new Set([
   'funds_held',
@@ -42,10 +46,12 @@ receiptRouter.post('/generateReceipt', requireAuth, sensitiveActionRateLimit, as
     throw new ApiError('failed-precondition', 'A receipt is only available once a payment has been made');
   }
 
-  const bucket = admin.storage().bucket();
-  const filePath = `receipts/${transactionId}.pdf`;
-  const file = bucket.file(filePath);
-  const [alreadyExists] = await file.exists();
+  const fileName = `${transactionId}.pdf`;
+  const filePath = `receipts/${fileName}`;
+  const { data: existingFiles } = await supabase.storage
+    .from(DOCUMENTS_BUCKET)
+    .list('receipts', { search: fileName });
+  const alreadyExists = (existingFiles || []).some((f) => f.name === fileName);
 
   if (!alreadyExists) {
     const [listingDoc, tenantDoc, landlordDoc] = await Promise.all([
@@ -69,20 +75,24 @@ receiptRouter.post('/generateReceipt', requireAuth, sensitiveActionRateLimit, as
       landlordName: landlord?.displayName || 'Unknown landlord',
     });
 
-    await file.save(pdfBuffer, {
-      contentType: 'application/pdf',
-      metadata: { cacheControl: 'private, max-age=3600' },
-    });
+    const { error: uploadError } = await supabase.storage
+      .from(DOCUMENTS_BUCKET)
+      .upload(filePath, pdfBuffer, { contentType: 'application/pdf', upsert: true });
+    if (uploadError) {
+      throw new ApiError('internal', 'Failed to store generated receipt');
+    }
   }
 
-  const [url] = await file.getSignedUrl({
-    action: 'read',
-    expires: Date.now() + 15 * 60 * 1000,
-  });
+  const { data: signedData, error: signError } = await supabase.storage
+    .from(DOCUMENTS_BUCKET)
+    .createSignedUrl(filePath, 15 * 60);
+  if (signError || !signedData) {
+    throw new ApiError('internal', 'Failed to generate receipt URL');
+  }
 
   console.log(`[RECEIPT] Generated/served receipt for transaction ${transactionId}`);
 
-  res.json({ url });
+  res.json({ url: signedData.signedUrl });
 }));
 
 function buildReceiptPdf(params: {

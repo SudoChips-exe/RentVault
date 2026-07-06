@@ -10,6 +10,19 @@ const nextConfig: NextConfig = {
   experimental: {
     turbopackFileSystemCacheForDev: false,
   },
+  async rewrites() {
+    // Standalone `next dev` has no Express server in front of it to own
+    // /api - proxy straight to backend/server so callApi() (lib/api.ts)
+    // doesn't 404 locally. Skipped in the combined Render build
+    // (NEXT_BASE_PATH set) since Express already owns /api there.
+    if (process.env.NEXT_BASE_PATH) return [];
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.BACKEND_URL || 'http://localhost:3001'}/api/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -2,24 +2,20 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { storage } from '../../lib/firebase';
+import { uploadDocument } from '../../lib/supabase';
 import { callApi } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { parseFirebaseError } from '../../lib/errorHelper';
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, X, Clock, XCircle, ShieldCheck } from 'lucide-react';
 
-function uploadFile(file: File, path: string, onProgress: (pct: number) => void): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const storageRef = ref(storage, path);
-    const task = uploadBytesResumable(storageRef, file);
-    task.on(
-      'state_changed',
-      (snapshot) => onProgress((snapshot.bytesTransferred / snapshot.totalBytes) * 100),
-      reject,
-      async () => resolve(await getDownloadURL(task.snapshot.ref))
-    );
-  });
+// Supabase's client doesn't expose byte-level upload progress the way
+// Firebase's uploadBytesResumable did, so this is a rough two-phase
+// indicator (uploading vs finalizing) rather than a real progress percentage.
+async function uploadFile(file: File, path: string, onProgress: (pct: number) => void): Promise<string> {
+  onProgress(10);
+  const url = await uploadDocument(file, path);
+  onProgress(100);
+  return url;
 }
 
 export default function TenantVerificationPage() {
