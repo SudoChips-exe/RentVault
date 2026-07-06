@@ -33,7 +33,7 @@ ARG FIREBASE_APP_ID=1:479739408676:web:e3c32072d89731c7b3c3b1
 ARG SUPABASE_URL=https://zuoogjuxtzzjcoyzjzet.supabase.co
 ARG SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1b29nanV4dHp6amNveXpqemV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzMzA3MDQsImV4cCI6MjA5ODkwNjcwNH0.6EaPGSOA3p7A-3HOtH8VlGGumJz-65WqgUQ5jm7_Ma4
 
-FROM node:20-alpine AS frontend-build
+FROM node:22-alpine AS frontend-build
 ARG FIREBASE_API_KEY
 ARG FIREBASE_AUTH_DOMAIN
 ARG FIREBASE_PROJECT_ID
@@ -52,7 +52,7 @@ RUN npm install
 COPY frontend/ ./
 RUN npm run build
 
-FROM node:20-alpine AS dashboards-build
+FROM node:22-alpine AS dashboards-build
 ARG FIREBASE_API_KEY
 ARG FIREBASE_AUTH_DOMAIN
 ARG FIREBASE_PROJECT_ID
@@ -76,7 +76,7 @@ COPY dashboards/ ./
 ENV NEXT_BASE_PATH=/dashboard
 RUN npm run build
 
-FROM node:20-alpine AS server-build
+FROM node:22-alpine AS server-build
 WORKDIR /app/backend/server
 COPY backend/server/package.json ./
 RUN npm install
@@ -84,7 +84,7 @@ COPY backend/server/ ./
 RUN npm run build
 
 # --- Runtime ---------------------------------------------------------------
-FROM node:20-alpine AS runtime
+FROM node:22-alpine AS runtime
 WORKDIR /app
 
 # Frontend: static build output only.
