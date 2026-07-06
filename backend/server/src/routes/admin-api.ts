@@ -43,7 +43,7 @@ adminApiRouter.post('/getAuditLogs', requireAuth, adminReadRateLimit, asyncRoute
   const offset = (page - 1) * pageSize;
   const snapshot = await query.offset(offset).limit(pageSize).get();
 
-  const logs = snapshot.docs.map((doc) => {
+  const logs = snapshot.docs.map((doc: admin.firestore.QueryDocumentSnapshot) => {
     const logData = doc.data();
     const metadata = logData.metadata || {};
     // eventType is one of a handful of generic buckets - surface the more
@@ -91,7 +91,7 @@ adminApiRouter.post('/getAllTransactions', requireAuth, adminReadRateLimit, asyn
   const snapshot = await query.offset(offset).limit(pageSize).get();
 
   const uids = new Set<string>();
-  snapshot.docs.forEach((doc) => {
+  snapshot.docs.forEach((doc: admin.firestore.QueryDocumentSnapshot) => {
     const t = doc.data();
     if (t.tenantUid) uids.add(t.tenantUid);
     if (t.landlordUid) uids.add(t.landlordUid);
@@ -105,14 +105,14 @@ adminApiRouter.post('/getAllTransactions', requireAuth, adminReadRateLimit, asyn
     : [];
 
   const userMap: Record<string, string> = {};
-  userSnapshots.forEach((snap) => {
+  userSnapshots.forEach((snap: admin.firestore.DocumentSnapshot) => {
     if (snap.exists) {
       const u = snap.data()!;
       userMap[snap.id] = u.displayName || u.email || snap.id;
     }
   });
 
-  const transactions = snapshot.docs.map((doc) => {
+  const transactions = snapshot.docs.map((doc: admin.firestore.QueryDocumentSnapshot) => {
     const t = doc.data();
     return {
       id: doc.id,

@@ -17,7 +17,7 @@ export async function confirmPaymentReceived(
 ): Promise<boolean> {
   const transactionRef = db.collection('transactions').doc(transactionId);
 
-  const didTransition = await db.runTransaction(async (tx) => {
+  const didTransition = await db.runTransaction(async (tx: admin.firestore.Transaction) => {
     const snap = await tx.get(transactionRef);
     if (!snap.exists) return false;
     if (snap.data()!.status !== TRANSACTION_STATUSES.PENDING_PAYMENT) return false;

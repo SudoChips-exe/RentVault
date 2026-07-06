@@ -61,7 +61,7 @@ internalRouter.post('/internal/check-timeouts', requireInternalSecret, asyncRout
 
   console.log(`[TIMEOUT] Found ${expiredTransactions.size} expired transactions`);
 
-  const timeoutPromises = expiredTransactions.docs.map(async (doc) => {
+  const timeoutPromises = expiredTransactions.docs.map(async (doc: admin.firestore.QueryDocumentSnapshot) => {
     const transactionId = doc.id;
     try {
       await doc.ref.update({

@@ -24,7 +24,7 @@ export async function processRefund(
   // before the Nomba call, so two concurrent refund attempts (e.g. an admin's
   // manualRefund racing the automatic reject/timeout refund) can't both pass
   // the precondition check and double-refund the tenant.
-  const { previousStatus, nombaPaymentReference, amount } = await db.runTransaction(async (tx) => {
+  const { previousStatus, nombaPaymentReference, amount } = await db.runTransaction(async (tx: admin.firestore.Transaction) => {
     const transactionDoc = await tx.get(transactionRef);
     if (!transactionDoc.exists) {
       throw new ApiError('not-found', 'Transaction not found');

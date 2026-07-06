@@ -30,7 +30,7 @@ verificationRouter.post('/verificationSubmit', requireAuth, sensitiveActionRateL
   }
 
   const transactionRef = db.collection('transactions').doc(transactionId);
-  const previousStatus = await db.runTransaction(async (tx) => {
+  const previousStatus = await db.runTransaction(async (tx: admin.firestore.Transaction) => {
     const transactionDoc = await tx.get(transactionRef);
     if (!transactionDoc.exists) throw new ApiError('not-found', 'Transaction not found');
 
@@ -86,7 +86,7 @@ verificationRouter.post('/verificationApprove', requireAuth, sensitiveActionRate
   }
 
   const transactionRef = db.collection('transactions').doc(transactionId);
-  await db.runTransaction(async (tx) => {
+  await db.runTransaction(async (tx: admin.firestore.Transaction) => {
     const transactionDoc = await tx.get(transactionRef);
     if (!transactionDoc.exists) throw new ApiError('not-found', 'Transaction not found');
 
@@ -140,7 +140,7 @@ verificationRouter.post('/verificationReject', requireAuth, sensitiveActionRateL
   }
 
   const transactionRef = db.collection('transactions').doc(transactionId);
-  await db.runTransaction(async (tx) => {
+  await db.runTransaction(async (tx: admin.firestore.Transaction) => {
     const transactionDoc = await tx.get(transactionRef);
     if (!transactionDoc.exists) throw new ApiError('not-found', 'Transaction not found');
 
