@@ -1,0 +1,18 @@
+name: Keep Render instance awake
+
+# Render's free tier spins down the service after ~15 min of no HTTP traffic,
+# which means a cold-start delay (30-60s) for whoever hits it next - bad if
+# that's a judge during a demo. Pings the public, unauthenticated /api/health
+# route on a tighter interval than timeout-check.yml's 15 min, since GitHub's
+# `schedule` trigger isn't guaranteed to fire exactly on time.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: curl -sf "https://rentvault.sudochips.dev/api/health"

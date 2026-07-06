@@ -13,7 +13,7 @@ export const webhookRouter = Router();
 
 // Nomba signs the raw request body, so this route needs the unparsed body -
 // mounted with express.raw() instead of the app-wide express.json() parser.
-webhookRouter.post('/webhook-listener', webhookRateLimit, express.raw({ type: '*/*' }), async (req, res) => {
+webhookRouter.post('/webhooks/nomba', webhookRateLimit, express.raw({ type: '*/*' }), async (req, res) => {
   const startTime = Date.now();
 
   try {

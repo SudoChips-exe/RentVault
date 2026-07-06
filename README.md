@@ -115,7 +115,7 @@ rentvault/
 │   │   │   ├── index.ts                  # Entry point - mounts /api, embeds dashboards, serves frontend
 │   │   │   ├── routes/
 │   │   │   │   ├── checkout.ts           # POST /api/checkoutInitiate
-│   │   │   │   ├── webhook.ts            # POST /api/webhook-listener
+│   │   │   │   ├── webhook.ts            # POST /api/webhooks/nomba
 │   │   │   │   ├── verification.ts       # POST /api/verificationSubmit|Approve|Reject
 │   │   │   │   ├── tenant-verification.ts
 │   │   │   │   ├── admin-api.ts          # POST /api/getAllTransactions, /api/getAuditLogs
@@ -259,7 +259,7 @@ since Cloud Functions requires Blaze to deploy at all:
 ### 5. Configure Nomba Webhook
 
 1. Go to Nomba Dashboard -> Developer -> Webhook Setup
-2. Add webhook URL: `https://rentvault-xxxx.onrender.com/api/webhook-listener`
+2. Add webhook URL: `https://rentvault-xxxx.onrender.com/api/webhooks/nomba`
    (this is configured once here, not sent per-request by the API)
 3. Set the signature key shown there as `NOMBA_WEBHOOK_SECRET`
 4. Nomba delivers `payment_success`, `payout_success`, `payout_failed`, and
@@ -431,7 +431,7 @@ All webhook requests validate signature using Nomba webhook secret before proces
 
 ### Rate Limiting
 
-The two unauthenticated/public-facing endpoints are rate-limited (`backend/server/src/middleware.ts`): `checkoutInitiate` (10 requests / 15 min) and `webhook-listener` (60 requests / min), to blunt abuse of the Nomba-facing surface.
+The two unauthenticated/public-facing endpoints are rate-limited (`backend/server/src/middleware.ts`): `checkoutInitiate` (10 requests / 15 min) and `webhooks/nomba` (60 requests / min), to blunt abuse of the Nomba-facing surface.
 
 ---
 

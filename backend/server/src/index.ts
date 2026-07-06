@@ -50,7 +50,7 @@ async function main() {
   app.set('trust proxy', 1);
 
   const apiRouter = express.Router();
-  // webhook-listener needs the raw body for signature validation, so it must
+  // webhooks/nomba needs the raw body for signature validation, so it must
   // be mounted before the JSON body parser touches the request.
   apiRouter.use(webhookRouter);
   apiRouter.use(express.json());

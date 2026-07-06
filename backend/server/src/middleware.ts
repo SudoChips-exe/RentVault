@@ -18,7 +18,7 @@ export const checkoutRateLimit = rateLimit({
   handler: rateLimitHandler,
 });
 
-// webhook-listener is unauthenticated and internet-facing (Nomba calls it
+// webhooks/nomba is unauthenticated and internet-facing (Nomba calls it
 // directly) - generous enough for legitimate webhook bursts, tight enough
 // to blunt abuse from arbitrary traffic hitting the public endpoint.
 export const webhookRateLimit = rateLimit({
