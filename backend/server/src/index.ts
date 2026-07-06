@@ -55,6 +55,22 @@ console.log('[BOOT] Private key diagnostic:', {
   hasCarriageReturns: config.firebase.privateKey.includes('\r'),
 });
 
+// Reproduces the exact operation google-auth-library performs internally to
+// mint each gRPC call's auth token (self-signed JWT, RS256) - in isolation,
+// so a real, undecorated crypto error surfaces here instead of buried inside
+// gRPC's generic "Getting metadata from plugin failed" wrapper with no
+// message (which is all the actual Firestore crash gives us).
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const crypto = require('crypto');
+  const sign = crypto.createSign('RSA-SHA256');
+  sign.update('boot-diagnostic-test');
+  sign.sign(normalizedPrivateKey, 'base64');
+  console.log('[BOOT] Private key RSA-SHA256 sign self-test: OK');
+} catch (signError) {
+  console.error('[BOOT] Private key RSA-SHA256 sign self-test FAILED:', signError);
+}
+
 // Must run before importing any route module - each one calls
 // admin.firestore() at its own top level, which throws if the default app
 // isn't initialized yet.
