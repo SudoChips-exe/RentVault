@@ -21,12 +21,14 @@ assertRequiredConfig();
 // Normalizes whatever shape the private key arrives in as an env var - a
 // literal "\n"-escaped single line (the usual .env format), a real
 // multi-line value (common when pasted into a host's dashboard textarea),
-// or either of those with stray \r from a Windows clipboard mixed in. OpenSSL
-// 3's PEM parser is far stricter than OpenSSL 1.1 about exactly this kind of
-// malformed-but-"close enough" input (this is what "error:1E08010C:DECODER
-// routines::unsupported" from firebase-admin/gRPC actually means in practice).
+// either of those with stray \r from a Windows clipboard mixed in, or (the
+// actual root cause found in production) a stray leading/trailing `"` and
+// trailing `,` from copy-pasting a JSON service-account file's
+// `"private_key": "...",` line verbatim instead of just the value.
 function normalizePrivateKey(key: string): string {
-  return key.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim();
+  let normalized = key.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim();
+  normalized = normalized.replace(/^"/, '').replace(/",?$/, '').trim();
+  return normalized;
 }
 
 const normalizedPrivateKey = normalizePrivateKey(config.firebase.privateKey);
