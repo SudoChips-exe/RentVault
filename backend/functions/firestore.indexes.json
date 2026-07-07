@@ -49,13 +49,6 @@
       ]
     },
     {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "transactionReference", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "auditLogs",
       "queryScope": "COLLECTION",
       "fields": [
