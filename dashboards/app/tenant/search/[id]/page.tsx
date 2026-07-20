@@ -21,6 +21,7 @@ interface Listing {
   landlordUid: string;
   agentUid?: string;
   status: 'active' | 'inactive';
+  photoUrls?: string[];
   createdAt?: any;
 }
 
@@ -152,6 +153,26 @@ export default function TenantListingDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left: Listing info */}
         <div className="lg:col-span-2 space-y-8">
+          {listing.photoUrls && listing.photoUrls.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+              <div className="aspect-video w-full overflow-hidden bg-slate-100">
+                <img
+                  src={listing.photoUrls[0]}
+                  alt={listing.propertyName}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              {listing.photoUrls.length > 1 && (
+                <div className="grid grid-cols-4 gap-2 p-3">
+                  {listing.photoUrls.slice(1, 5).map((url, i) => (
+                    <div key={url} className="aspect-square rounded-xl overflow-hidden bg-slate-100">
+                      <img src={url} alt={`${listing.propertyName} ${i + 2}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
             <div className="h-2 bg-brand-500" />
             <div className="p-8">

@@ -13,6 +13,7 @@ interface Listing {
   landlordUid: string;
   agentUid?: string;
   status: 'active' | 'inactive';
+  photoUrls?: string[];
 }
 
 export const ListingSearch: React.FC = () => {
@@ -138,12 +139,23 @@ const ListingCard: React.FC<{ listing: Listing }> = ({ listing }) => {
     return (
       <Link to={`/listings/${listing.listingId}`} className="block group">
         <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden hover:border-brand-500 transition-all duration-300 hover:shadow-xl hover:shadow-brand-500/5 group-hover:-translate-y-1">
+          {listing.photoUrls?.[0] && (
+            <div className="aspect-video w-full overflow-hidden bg-slate-100">
+              <img
+                src={listing.photoUrls[0]}
+                alt={listing.propertyName}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            </div>
+          )}
           <div className="p-6">
             <div className="flex items-start justify-between mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center flex-shrink-0 group-hover:border-brand-200 group-hover:bg-brand-50 transition-colors">
-                <Building2 className="w-6 h-6 text-slate-400 group-hover:text-brand-500 transition-colors" />
-              </div>
-              <div className="px-3 py-1 rounded-full bg-brand-50 text-brand-600 text-xs font-bold border border-brand-100">
+              {!listing.photoUrls?.[0] && (
+                <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center flex-shrink-0 group-hover:border-brand-200 group-hover:bg-brand-50 transition-colors">
+                  <Building2 className="w-6 h-6 text-slate-400 group-hover:text-brand-500 transition-colors" />
+                </div>
+              )}
+              <div className="px-3 py-1 rounded-full bg-brand-50 text-brand-600 text-xs font-bold border border-brand-100 ml-auto">
                 Active
               </div>
             </div>

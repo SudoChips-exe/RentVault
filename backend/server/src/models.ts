@@ -34,6 +34,7 @@ export interface Listing {
   agentUid?: string;
   splitConfigId: string;
   status: 'active' | 'inactive';
+  photoUrls?: string[];
   createdAt: admin.firestore.Timestamp;
   updatedAt: admin.firestore.Timestamp;
 }
