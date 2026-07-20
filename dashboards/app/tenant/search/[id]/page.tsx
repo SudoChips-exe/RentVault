@@ -296,7 +296,7 @@ export default function TenantListingDetailPage() {
                     disabled={checkoutLoading}
                     className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${
                       provider === 'monnify'
-                        ? 'bg-brand-500 border-brand-500 text-white'
+                        ? 'bg-monnify-500 border-monnify-500 text-white'
                         : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
                     }`}
                   >

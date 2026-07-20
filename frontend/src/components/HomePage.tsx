@@ -289,7 +289,7 @@ export const HomePage: React.FC = () => {
         <div className="relative max-w-7xl mx-auto w-full py-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-nomba-500 text-slate-950 text-[10px] font-bold uppercase tracking-wider mb-8 shadow-sm">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-nomba-500 to-monnify-500 text-slate-950 text-[10px] font-bold uppercase tracking-wider mb-8 shadow-sm">
                 <span className="w-1 h-1 rounded-full bg-slate-900" />
                 Powered by Nomba &amp; Monnify
               </div>
@@ -356,12 +356,16 @@ export const HomePage: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-nomba-500/10 border border-nomba-500/20 flex items-center justify-center text-nomba-500">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-br from-nomba-500/10 to-monnify-500/10 border border-monnify-500/20 flex items-center justify-center text-monnify-500">
                     <ShieldCheck className="w-6 h-6" />
                   </div>
                   <div>
                     <h4 className="font-bold text-white text-lg">Bank-Grade Secured</h4>
-                    <p className="text-slate-400 text-sm">Funds held in regulated, industry-standard escrow via Nomba or Monnify.</p>
+                    <p className="text-slate-400 text-sm">
+                      Funds held in regulated, industry-standard escrow via{' '}
+                      <span className="text-nomba-500 font-bold">Nomba</span> or{' '}
+                      <span className="text-monnify-500 font-bold">Monnify</span>.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -493,14 +497,16 @@ export const HomePage: React.FC = () => {
               </div>
               <h2 className="text-4xl lg:text-6xl font-black text-white leading-tight mb-8">
                 Built on enterprise <br />
-                <span className="text-nomba-500">payment rails.</span>
+                <span className="bg-gradient-to-r from-nomba-500 to-monnify-500 bg-clip-text text-transparent">payment rails.</span>
               </h2>
               <p className="text-slate-400 text-xl leading-relaxed mb-12">
-                We don't just "promise" security. We leverage Nomba's and Monnify's proven
+                We don't just "promise" security. We leverage{' '}
+                <span className="text-nomba-500 font-bold">Nomba's</span> and{' '}
+                <span className="text-monnify-500 font-bold">Monnify's</span> proven
                 financial infrastructure to handle every transaction. Your funds are held
                 in regulated accounts, ensuring absolute safety.
               </p>
-              <div className="p-8 bg-slate-900 border-l-4 border-nomba-500 rounded-r-2xl shadow-2xl">
+              <div className="p-8 bg-slate-900 border-l-4 border-monnify-500 rounded-r-2xl shadow-2xl">
                 <p className="text-slate-300 text-lg italic font-medium leading-relaxed">
                   "By integrating RentVault with regulated payment layers, we're bringing
                   unprecedented transparency to the Nigerian rental market."

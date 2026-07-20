@@ -302,7 +302,7 @@ export const ListingDetail: React.FC = () => {
                           disabled={checkoutLoading}
                           className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${
                             provider === 'monnify'
-                              ? 'bg-brand-500 border-brand-500 text-white'
+                              ? 'bg-monnify-500 border-monnify-500 text-white'
                               : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
                           }`}
                         >
@@ -330,12 +330,12 @@ export const ListingDetail: React.FC = () => {
                   <p className="text-center text-[10px] text-slate-400 mt-4">
                     You'll be asked to sign in with Google. Payments processed securely via{' '}
                     <span className="font-bold text-nomba-600">Nomba</span> or{' '}
-                    <span className="font-bold text-brand-600">Monnify</span>.
+                    <span className="font-bold text-monnify-600">Monnify</span>.
                   </p>
                 ) : (
                   <p className="text-center text-[10px] text-slate-400 mt-4">
                     Payments processed securely via <span className="font-bold text-nomba-600">Nomba</span> or{' '}
-                    <span className="font-bold text-brand-600">Monnify</span>.
+                    <span className="font-bold text-monnify-600">Monnify</span>.
                   </p>
                 )}
               </div>
