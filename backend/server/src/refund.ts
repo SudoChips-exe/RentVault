@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import * as admin from 'firebase-admin';
 import { nombaClient } from './nomba-client';
+import { monnifyClient } from './monnify-client';
 import { TRANSACTION_STATUSES, generateTransactionReference, validateTransactionStatusTransition } from './models';
-import { logTransactionStatusChange, logNombaApiCall } from './audit-logger';
+import { logTransactionStatusChange, logNombaApiCall, logMonnifyApiCall } from './audit-logger';
 import { ApiError } from './api-error';
 import { isAxiosErrorWithStatus, errorMessage } from './error-utils';
 import { requireAuth, asyncRoute, AuthedRequest, sensitiveActionRateLimit } from './middleware';
@@ -24,7 +25,7 @@ export async function processRefund(
   // before the Nomba call, so two concurrent refund attempts (e.g. an admin's
   // manualRefund racing the automatic reject/timeout refund) can't both pass
   // the precondition check and double-refund the tenant.
-  const { previousStatus, nombaPaymentReference, amount } = await db.runTransaction(async (tx: admin.firestore.Transaction) => {
+  const { previousStatus, provider, paymentReference, amount } = await db.runTransaction(async (tx: admin.firestore.Transaction) => {
     const transactionDoc = await tx.get(transactionRef);
     if (!transactionDoc.exists) {
       throw new ApiError('not-found', 'Transaction not found');
@@ -38,7 +39,12 @@ export async function processRefund(
       );
     }
 
-    if (!transaction.nombaPaymentReference) {
+    const txProvider: 'nomba' | 'monnify' = transaction.paymentProvider || 'nomba';
+    const txPaymentReference = txProvider === 'monnify'
+      ? transaction.monnifyPaymentReference
+      : transaction.nombaPaymentReference;
+
+    if (!txPaymentReference) {
       throw new ApiError(
         'failed-precondition',
         'Transaction has no payment reference for refund'
@@ -52,16 +58,19 @@ export async function processRefund(
 
     return {
       previousStatus: transaction.status as string,
-      nombaPaymentReference: transaction.nombaPaymentReference as string,
+      provider: txProvider,
+      paymentReference: txPaymentReference as string,
       amount: transaction.amount as number,
     };
   });
 
   const refundReference = `REF-${transactionId}-${generateTransactionReference()}`;
+  const client = provider === 'monnify' ? monnifyClient : nombaClient;
+  const logApiCall = provider === 'monnify' ? logMonnifyApiCall : logNombaApiCall;
 
   try {
-    await nombaClient.initiateRefund({
-      paymentReference: nombaPaymentReference,
+    await client.initiateRefund({
+      paymentReference,
       amount,
       reference: refundReference,
     });
@@ -73,8 +82,8 @@ export async function processRefund(
       actor
     );
 
-    await logNombaApiCall('/refunds', refundReference, 200, {
-      paymentReference: nombaPaymentReference,
+    await logApiCall('/refunds', refundReference, 200, {
+      paymentReference,
       amount,
     });
 
@@ -100,7 +109,7 @@ export async function processRefund(
       actor
     );
 
-    await logNombaApiCall('/refunds', refundReference, status, { error: message });
+    await logApiCall('/refunds', refundReference, status, { error: message });
 
     throw new ApiError('internal', `Refund failed for transaction ${transactionId}. Contact support.`);
   }

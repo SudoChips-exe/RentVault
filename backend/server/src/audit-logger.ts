@@ -61,6 +61,25 @@ export function logNombaApiCall(
   });
 }
 
+export function logMonnifyApiCall(
+  endpoint: string,
+  reference: string,
+  httpStatus: number,
+  metadata?: Record<string, unknown>
+): Promise<void> {
+  return createAuditLog({
+    eventType: 'monnify_api_call',
+    actor: 'system',
+    description: `Monnify API call to ${endpoint} for reference ${reference}`,
+    metadata: {
+      endpoint,
+      reference,
+      httpStatus,
+      ...metadata,
+    },
+  });
+}
+
 export function logWebhookEvent(
   eventType: string,
   reference: string,

@@ -13,6 +13,7 @@ interface Disbursement {
   amount: number;
   status: string;
   nombaTransferReference?: string;
+  monnifyTransferReference?: string;
   createdAt: any;
 }
 
@@ -48,6 +49,7 @@ export default function LandlordDisbursements() {
             amount: disb.amount,
             status: disb.status,
             nombaTransferReference: disb.nombaTransferReference,
+            monnifyTransferReference: disb.monnifyTransferReference,
             createdAt: t.updatedAt,
           };
         });
@@ -109,7 +111,7 @@ export default function LandlordDisbursements() {
                       <td className="px-6 py-4 font-mono text-xs text-slate-500">{d.id}</td>
                       <td className="px-6 py-4 font-mono text-xs text-slate-500">{d.transactionId}</td>
                       <td className="px-6 py-4">{formatDate(d.createdAt)}</td>
-                      <td className="px-6 py-4 font-mono text-xs text-slate-500">{d.nombaTransferReference}</td>
+                      <td className="px-6 py-4 font-mono text-xs text-slate-500">{d.nombaTransferReference || d.monnifyTransferReference}</td>
                       <td className="px-6 py-4">
                         <span className="flex items-center gap-1.5 text-brand-600 text-xs font-bold">
                           <CheckCircle2 className="w-3.5 h-3.5" /> Disbursed

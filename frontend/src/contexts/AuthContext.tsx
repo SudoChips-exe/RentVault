@@ -15,6 +15,11 @@ export interface UserProfile {
   role: 'tenant' | 'landlord' | 'agent' | 'admin';
   displayName: string;
   nombaAccountId?: string;
+  monnifyPayoutAccount?: {
+    accountNumber: string;
+    bankCode: string;
+    accountName: string;
+  };
   verificationStatus?: 'unverified' | 'pending' | 'approved' | 'rejected';
   createdAt?: any;
   updatedAt?: any;
@@ -28,6 +33,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   updateNombaAccount: (accountId: string) => Promise<void>;
+  updateMonnifyPayoutAccount: (account: { accountNumber: string; bankCode: string; accountName: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -114,6 +120,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateMonnifyPayoutAccount = async (account: { accountNumber: string; bankCode: string; accountName: string }) => {
+    if (!firebaseUser) return;
+    try {
+      const userRef = doc(db, 'users', firebaseUser.uid);
+      await updateDoc(userRef, {
+        monnifyPayoutAccount: account,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error('[AUTH_CONTEXT] Failed to update Monnify payout account:', error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -124,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signInWithGoogle,
         logout,
         updateNombaAccount,
+        updateMonnifyPayoutAccount,
       }}
     >
       {children}

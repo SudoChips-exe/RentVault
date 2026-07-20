@@ -25,7 +25,9 @@ interface Transaction {
   };
   verificationDeadline?: any;
   verificationDocumentUrl?: string;
+  paymentProvider?: 'nomba' | 'monnify';
   nombaCheckoutUrl?: string;
+  monnifyCheckoutUrl?: string;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -36,6 +38,7 @@ interface Disbursement {
   amount: number;
   status: 'transfer_pending' | 'disbursed' | 'transfer_failed' | 'transfer_initiation_failed';
   nombaTransferReference?: string;
+  monnifyTransferReference?: string;
 }
 
 const STATUS_STEPS = [
@@ -211,12 +214,12 @@ export const TransactionStatus: React.FC = () => {
             checkout popup was blocked or closed before completing payment
             (we navigate here automatically right after checkoutInitiate,
             before there's any confirmation the popup actually opened). */}
-        {tx.status === 'pending_payment' && tx.nombaCheckoutUrl && (
+        {tx.status === 'pending_payment' && (tx.paymentProvider === 'monnify' ? tx.monnifyCheckoutUrl : tx.nombaCheckoutUrl) && (
           <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-2xl mb-5">
             <Clock className="w-5 h-5 text-blue-500 flex-shrink-0" />
             <p className="text-blue-700 text-sm font-semibold flex-1">Payment not completed yet.</p>
             <a
-              href={tx.nombaCheckoutUrl}
+              href={tx.paymentProvider === 'monnify' ? tx.monnifyCheckoutUrl : tx.nombaCheckoutUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors flex-shrink-0"
@@ -354,7 +357,9 @@ export const TransactionStatus: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-sm font-bold text-slate-900 capitalize">{d.recipientType}</p>
-                        {d.nombaTransferReference && <p className="text-xs text-slate-400 font-mono">{d.nombaTransferReference}</p>}
+                        {(d.nombaTransferReference || d.monnifyTransferReference) && (
+                          <p className="text-xs text-slate-400 font-mono">{d.nombaTransferReference || d.monnifyTransferReference}</p>
+                        )}
                       </div>
                     </div>
                     <div className="text-right">

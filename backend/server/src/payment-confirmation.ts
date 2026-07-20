@@ -12,8 +12,9 @@ const db = admin.firestore();
 export async function confirmPaymentReceived(
   transactionId: string,
   amount: number,
-  nombaPaymentReference: string,
-  actor: string
+  providerPaymentReference: string,
+  actor: string,
+  provider: 'nomba' | 'monnify' = 'nomba'
 ): Promise<boolean> {
   const transactionRef = db.collection('transactions').doc(transactionId);
 
@@ -29,9 +30,11 @@ export async function confirmPaymentReceived(
       Date.now() + config.verification.timeoutHours * 60 * 60 * 1000
     );
 
+    const referenceField = provider === 'monnify' ? 'monnifyPaymentReference' : 'nombaPaymentReference';
+
     tx.update(transactionRef, {
       status: TRANSACTION_STATUSES.FUNDS_HELD,
-      nombaPaymentReference,
+      [referenceField]: providerPaymentReference,
       amount,
       verificationDeadline,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),

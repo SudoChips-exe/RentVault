@@ -180,7 +180,7 @@ const HOW_IT_WORKS = [
   {
     num: '01',
     title: 'Secure Escrow',
-    body: 'Your payment is held in a regulated vault powered by Nomba. Funds are never sent directly to the landlord until ownership is verified.',
+    body: 'Your payment is held in a regulated vault powered by Nomba and Monnify. Funds are never sent directly to the landlord until ownership is verified.',
   },
   {
     num: '02',
@@ -205,7 +205,7 @@ const FAQS = [
   },
   {
     q: 'Is my money safe with RentVault?',
-    a: 'Yes. We partner with Nomba to provide enterprise-grade financial rails. Your funds are held in regulated accounts, not in any individual\'s personal account.',
+    a: 'Yes. We partner with Nomba and Monnify to provide enterprise-grade financial rails. Your funds are held in regulated accounts, not in any individual\'s personal account.',
   },
   {
     q: 'Can I change the disbursement percentages?',
@@ -217,7 +217,7 @@ const COMPARISON = [
   {
     feature: 'Payment Security',
     traditional: 'Direct Transfer to Agent/Landlord',
-    rentvault: 'Regulated Nomba Escrow Vault',
+    rentvault: 'Regulated Escrow Vault (Nomba & Monnify)',
     isWinning: true,
   },
   {
@@ -291,7 +291,7 @@ export const HomePage: React.FC = () => {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-nomba-500 text-slate-950 text-[10px] font-bold uppercase tracking-wider mb-8 shadow-sm">
                 <span className="w-1 h-1 rounded-full bg-slate-900" />
-                Powered by Nomba 
+                Powered by Nomba &amp; Monnify
               </div>
                <h1 className="text-6xl sm:text-7xl lg:text-[7.5rem] font-black text-slate-900 leading-[0.9] tracking-tighter mb-8">
                  Rent paid.<br />
@@ -341,9 +341,9 @@ export const HomePage: React.FC = () => {
                 <span className="text-brand-500">missing in rentals.</span>
               </h2>
               <p className="text-slate-400 text-xl leading-relaxed mb-12 relative">
-                Rental fraud is an epidemic. Ghost agents and fake listings cost tenants millions. 
-                We've built a financial fortress. By partnering with Nomba, we ensure that funds 
-                stay in a secure vault until ownership is proven.
+                Rental fraud is an epidemic. Ghost agents and fake listings cost tenants millions.
+                We've built a financial fortress. By partnering with Nomba and Monnify, we ensure
+                that funds stay in a secure vault until ownership is proven.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                 <div className="flex gap-4">
@@ -360,8 +360,8 @@ export const HomePage: React.FC = () => {
                     <ShieldCheck className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white text-lg">Nomba Secured</h4>
-                    <p className="text-slate-400 text-sm">Funds held in regulated, industry-standard escrow.</p>
+                    <h4 className="font-bold text-white text-lg">Bank-Grade Secured</h4>
+                    <p className="text-slate-400 text-sm">Funds held in regulated, industry-standard escrow via Nomba or Monnify.</p>
                   </div>
                 </div>
               </div>
@@ -492,20 +492,19 @@ export const HomePage: React.FC = () => {
                 Infrastructure
               </div>
               <h2 className="text-4xl lg:text-6xl font-black text-white leading-tight mb-8">
-                Built on Nomba's <br />
-                <span className="text-nomba-500">enterprise rails.</span>
+                Built on enterprise <br />
+                <span className="text-nomba-500">payment rails.</span>
               </h2>
               <p className="text-slate-400 text-xl leading-relaxed mb-12">
-                We don't just "promise" security. We leverage Nomba's proven financial 
-                infrastructure to handle every transaction. Your funds are held 
+                We don't just "promise" security. We leverage Nomba's and Monnify's proven
+                financial infrastructure to handle every transaction. Your funds are held
                 in regulated accounts, ensuring absolute safety.
               </p>
               <div className="p-8 bg-slate-900 border-l-4 border-nomba-500 rounded-r-2xl shadow-2xl">
                 <p className="text-slate-300 text-lg italic font-medium leading-relaxed">
-                  "By integrating RentVault with our payment layers, we're bringing 
+                  "By integrating RentVault with regulated payment layers, we're bringing
                   unprecedented transparency to the Nigerian rental market."
                 </p>
-                <p className="text-slate-500 text-sm mt-6 font-bold">— Nomba Engineering</p>
               </div>
             </div>
             <div className="lg:w-1/2 grid grid-cols-2 gap-6">

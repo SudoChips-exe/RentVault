@@ -37,6 +37,7 @@ export const ListingDetail: React.FC = () => {
   const [listingLoading, setListingLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [provider, setProvider] = useState<'nomba' | 'monnify'>('nomba');
 
   useEffect(() => {
     if (!id) return;
@@ -108,7 +109,7 @@ export const ListingDetail: React.FC = () => {
     const popup = window.open('', '_blank');
 
     try {
-      const result = await callApi<{ checkoutUrl: string; transactionId: string }>('checkoutInitiate', { listingId: id! });
+      const result = await callApi<{ checkoutUrl: string; transactionId: string }>('checkoutInitiate', { listingId: id!, provider });
       if (popup) {
         popup.location.href = result.data.checkoutUrl;
       } else {
@@ -280,29 +281,61 @@ export const ListingDetail: React.FC = () => {
                     </a>
                   </div>
                 ) : (
-                  <button
-                    onClick={handlePayRent}
-                    disabled={checkoutLoading || authLoading || listing.status !== 'active'}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-brand-500 hover:bg-brand-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black rounded-2xl shadow-lg shadow-brand-500/30 hover:shadow-brand-500/50 disabled:shadow-none transition-all duration-200 active:scale-95 disabled:cursor-not-allowed text-lg"
-                  >
-                    {checkoutLoading ? (
-                      <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
-                    ) : !user ? (
-                      <><CreditCard className="w-5 h-5" /> Sign in to Pay Rent</>
-                    ) : (
-                      <><CreditCard className="w-5 h-5" /> Pay {formatAmount(listing.monthlyRent)}</>
+                  <div className="space-y-3">
+                    {user && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setProvider('nomba')}
+                          disabled={checkoutLoading}
+                          className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${
+                            provider === 'nomba'
+                              ? 'bg-nomba-500 border-nomba-500 text-slate-950'
+                              : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                          }`}
+                        >
+                          Pay with Nomba
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setProvider('monnify')}
+                          disabled={checkoutLoading}
+                          className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${
+                            provider === 'monnify'
+                              ? 'bg-brand-500 border-brand-500 text-white'
+                              : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                          }`}
+                        >
+                          Pay with Monnify
+                        </button>
+                      </div>
                     )}
-                  </button>
+                    <button
+                      onClick={handlePayRent}
+                      disabled={checkoutLoading || authLoading || listing.status !== 'active'}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-brand-500 hover:bg-brand-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black rounded-2xl shadow-lg shadow-brand-500/30 hover:shadow-brand-500/50 disabled:shadow-none transition-all duration-200 active:scale-95 disabled:cursor-not-allowed text-lg"
+                    >
+                      {checkoutLoading ? (
+                        <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
+                      ) : !user ? (
+                        <><CreditCard className="w-5 h-5" /> Sign in to Pay Rent</>
+                      ) : (
+                        <><CreditCard className="w-5 h-5" /> Pay {formatAmount(listing.monthlyRent)}</>
+                      )}
+                    </button>
+                  </div>
                 )}
 
                 {!user ? (
                   <p className="text-center text-[10px] text-slate-400 mt-4">
                     You'll be asked to sign in with Google. Payments processed securely via{' '}
-                    <span className="font-bold text-nomba-600">Nomba</span>.
+                    <span className="font-bold text-nomba-600">Nomba</span> or{' '}
+                    <span className="font-bold text-brand-600">Monnify</span>.
                   </p>
                 ) : (
                   <p className="text-center text-[10px] text-slate-400 mt-4">
-                    Payments processed securely via <span className="font-bold text-nomba-600">Nomba</span>.
+                    Payments processed securely via <span className="font-bold text-nomba-600">Nomba</span> or{' '}
+                    <span className="font-bold text-brand-600">Monnify</span>.
                   </p>
                 )}
               </div>

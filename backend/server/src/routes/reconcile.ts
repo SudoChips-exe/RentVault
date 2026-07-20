@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as admin from 'firebase-admin';
 import { nombaClient } from '../nomba-client';
+import { monnifyClient } from '../monnify-client';
 import { TRANSACTION_STATUSES } from '../models';
 import { confirmPaymentReceived } from '../payment-confirmation';
 import { ApiError } from '../api-error';
@@ -35,11 +36,22 @@ reconcileRouter.post('/checkPaymentStatus', adminReadRateLimit, requireAuth, asy
     return;
   }
 
-  const match = await nombaClient.findTransactionByReference(transaction.transactionReference);
-  if (match && match.status === 'SUCCESS') {
-    await confirmPaymentReceived(transactionId, match.amount, match.nombaTransactionId, 'reconciliation:manual');
-    res.json({ status: TRANSACTION_STATUSES.FUNDS_HELD });
-    return;
+  const provider: 'nomba' | 'monnify' = transaction.paymentProvider || 'nomba';
+
+  if (provider === 'monnify') {
+    const match = await monnifyClient.findTransactionByReference(transaction.transactionReference);
+    if (match && match.status === 'SUCCESS') {
+      await confirmPaymentReceived(transactionId, match.amount, match.monnifyTransactionId, 'reconciliation:manual', 'monnify');
+      res.json({ status: TRANSACTION_STATUSES.FUNDS_HELD });
+      return;
+    }
+  } else {
+    const match = await nombaClient.findTransactionByReference(transaction.transactionReference);
+    if (match && match.status === 'SUCCESS') {
+      await confirmPaymentReceived(transactionId, match.amount, match.nombaTransactionId, 'reconciliation:manual', 'nomba');
+      res.json({ status: TRANSACTION_STATUSES.FUNDS_HELD });
+      return;
+    }
   }
 
   res.json({ status: transaction.status });

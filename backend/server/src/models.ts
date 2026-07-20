@@ -8,6 +8,11 @@ export interface User {
   role: 'tenant' | 'landlord' | 'agent' | 'admin';
   displayName: string;
   nombaAccountId?: string;
+  monnifyPayoutAccount?: {
+    accountNumber: string;
+    bankCode: string;
+    accountName: string;
+  };
   verificationStatus?: TenantVerificationStatus;
   verificationDocuments?: {
     idDocumentUrl?: string;
@@ -43,8 +48,9 @@ export interface Disbursement {
   recipientType: 'landlord' | 'agent' | 'platform';
   amount: number;
   nombaTransferReference?: string;
+  monnifyTransferReference?: string;
   status: 'transfer_pending' | 'disbursed' | 'transfer_failed' | 'transfer_initiation_failed';
-  failureReason?: 'missing_nomba_account' | 'nomba_transfer_error';
+  failureReason?: 'missing_nomba_account' | 'nomba_transfer_error' | 'missing_monnify_account' | 'monnify_transfer_error';
   createdAt: admin.firestore.Timestamp;
   updatedAt: admin.firestore.Timestamp;
 }
@@ -75,8 +81,14 @@ export interface Transaction {
   splitConfigSnapshot: SplitConfigSnapshot;
   verificationDeadline?: admin.firestore.Timestamp;
   verificationDocumentUrl?: string;
+  // Which provider this transaction was collected/disbursed through. Absent
+  // on transactions created before Monnify was added - treat as 'nomba' at
+  // every read site (transaction.paymentProvider || 'nomba').
+  paymentProvider?: 'nomba' | 'monnify';
   nombaCheckoutUrl?: string;
   nombaPaymentReference?: string;
+  monnifyCheckoutUrl?: string;
+  monnifyPaymentReference?: string;
   createdAt: admin.firestore.Timestamp;
   updatedAt: admin.firestore.Timestamp;
 }
@@ -95,6 +107,7 @@ export interface SplitConfig {
 export type AuditEventType =
   | 'transaction_status_change'
   | 'nomba_api_call'
+  | 'monnify_api_call'
   | 'webhook_received'
   | 'verification_action';
 

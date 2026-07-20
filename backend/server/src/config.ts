@@ -23,6 +23,20 @@ export const config = {
       (process.env.NOMBA_ENV === 'test' ? 'https://sandbox.nomba.com' : 'https://api.nomba.com'),
     webhookBaseUrl: process.env.NOMBA_WEBHOOK_BASE_URL || '',
   },
+  monnify: {
+    env: process.env.MONNIFY_ENV || 'test',
+    contractCode: process.env.MONNIFY_CONTRACT_CODE || '',
+    liveApiKey: process.env.MONNIFY_LIVE_API_KEY || '',
+    liveSecretKey: process.env.MONNIFY_LIVE_SECRET_KEY || '',
+    testApiKey: process.env.MONNIFY_TEST_API_KEY || '',
+    testSecretKey: process.env.MONNIFY_TEST_SECRET_KEY || '',
+    // Same sandbox/live URL mismatch footgun as Nomba's baseUrl below -
+    // derived from MONNIFY_ENV unless explicitly overridden.
+    baseUrl: process.env.MONNIFY_BASE_URL ||
+      (process.env.MONNIFY_ENV === 'test' ? 'https://sandbox.monnify.com' : 'https://api.monnify.com'),
+    // Wallet account transfers/disbursements are debited from.
+    sourceAccountNumber: process.env.MONNIFY_SOURCE_ACCOUNT_NUMBER || '',
+  },
   verification: {
     timeoutHours: parseInt(process.env.VERIFICATION_TIMEOUT_HOURS || '48', 10),
   },
@@ -61,6 +75,15 @@ export function assertRequiredConfig(): void {
     if (!config.nomba.livePrivateKey) missing.push('NOMBA_LIVE_PRIVATE_KEY');
   }
 
+  if (!config.monnify.contractCode) missing.push('MONNIFY_CONTRACT_CODE');
+  if (config.monnify.env === 'test') {
+    if (!config.monnify.testApiKey) missing.push('MONNIFY_TEST_API_KEY');
+    if (!config.monnify.testSecretKey) missing.push('MONNIFY_TEST_SECRET_KEY');
+  } else {
+    if (!config.monnify.liveApiKey) missing.push('MONNIFY_LIVE_API_KEY');
+    if (!config.monnify.liveSecretKey) missing.push('MONNIFY_LIVE_SECRET_KEY');
+  }
+
   // Hard-fail, not a warning - this exact mismatch caused checkouts to
   // silently succeed against Nomba's sandbox using live credentials, meaning
   // no real money was ever actually collected despite NOMBA_ENV=live.
@@ -75,6 +98,20 @@ export function assertRequiredConfig(): void {
     missing.push(
       `NOMBA_BASE_URL (currently "${config.nomba.baseUrl}") doesn't point at sandbox while ` +
       'NOMBA_ENV=test - set it to https://sandbox.nomba.com or remove it entirely'
+    );
+  }
+
+  const monnifyBaseUrlLooksSandbox = config.monnify.baseUrl.includes('sandbox');
+  if (config.monnify.env !== 'test' && monnifyBaseUrlLooksSandbox) {
+    missing.push(
+      `MONNIFY_BASE_URL (currently "${config.monnify.baseUrl}") points at sandbox while ` +
+      'MONNIFY_ENV=live - set it to https://api.monnify.com or remove it entirely'
+    );
+  }
+  if (config.monnify.env === 'test' && !monnifyBaseUrlLooksSandbox) {
+    missing.push(
+      `MONNIFY_BASE_URL (currently "${config.monnify.baseUrl}") doesn't point at sandbox while ` +
+      'MONNIFY_ENV=test - set it to https://sandbox.monnify.com or remove it entirely'
     );
   }
 

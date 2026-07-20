@@ -1,17 +1,25 @@
 import * as admin from 'firebase-admin';
 import { nombaClient } from './nomba-client';
+import { monnifyClient } from './monnify-client';
 import { calculateDisbursementAmounts, TRANSACTION_STATUSES } from './models';
-import { logTransactionStatusChange, logNombaApiCall } from './audit-logger';
+import { logTransactionStatusChange, logNombaApiCall, logMonnifyApiCall } from './audit-logger';
 import { config } from './config';
 import { isAxiosErrorWithStatus, errorMessage } from './error-utils';
 
 const db = admin.firestore();
 
+interface MonnifyAccount {
+  accountNumber: string;
+  bankCode: string;
+  accountName: string;
+}
+
 interface RequiredRecipient {
   recipientType: 'landlord' | 'agent' | 'platform';
   recipientUid: string;
   amount: number;
-  accountId?: string;
+  nombaAccountId?: string;
+  monnifyAccount?: MonnifyAccount;
   reference: string;
 }
 
@@ -71,18 +79,32 @@ export async function runDisbursement(transactionId: string): Promise<void> {
     return;
   }
 
-  // Resolve every required recipient's payout account up front. Recipients
-  // that can't be resolved (missing nombaAccountId) still get a `disbursements`
-  // entry below with a failed status, instead of being silently omitted -
-  // omitting them let `allDisbursed` checks (here and in webhook.ts) pass
-  // vacuously and mark the transaction `completed` without everyone paid.
-  const landlordDoc = await db.collection('users').doc(afterData.landlordUid).get();
-  const landlordAccountId = landlordDoc.data()?.nombaAccountId as string | undefined;
+  // Payout provider matches the provider that collected the payment - keeps
+  // money on the same rails rather than moving between providers.
+  const provider: 'nomba' | 'monnify' = afterData.paymentProvider || 'nomba';
 
-  let agentAccountId: string | undefined;
+  function resolvePayoutAccount(userData: admin.firestore.DocumentData | undefined) {
+    if (provider === 'monnify') {
+      const account = userData?.monnifyPayoutAccount as MonnifyAccount | undefined;
+      const complete = account?.accountNumber && account?.bankCode && account?.accountName;
+      return { monnifyAccount: complete ? account : undefined };
+    }
+    return { nombaAccountId: userData?.nombaAccountId as string | undefined };
+  }
+
+  // Resolve every required recipient's payout account up front. Recipients
+  // that can't be resolved (missing payout account for this provider) still
+  // get a `disbursements` entry below with a failed status, instead of being
+  // silently omitted - omitting them let `allDisbursed` checks (here and in
+  // webhook.ts/webhook-monnify.ts) pass vacuously and mark the transaction
+  // `completed` without everyone paid.
+  const landlordDoc = await db.collection('users').doc(afterData.landlordUid).get();
+  const landlordAccount = resolvePayoutAccount(landlordDoc.data());
+
+  let agentAccount: { nombaAccountId?: string; monnifyAccount?: MonnifyAccount } = {};
   if (afterData.agentUid && amounts.agentAmount > 0) {
     const agentDoc = await db.collection('users').doc(afterData.agentUid).get();
-    agentAccountId = agentDoc.data()?.nombaAccountId as string | undefined;
+    agentAccount = resolvePayoutAccount(agentDoc.data());
   }
 
   const timestamp = Date.now();
@@ -91,7 +113,7 @@ export async function runDisbursement(transactionId: string): Promise<void> {
       recipientType: 'landlord',
       recipientUid: afterData.landlordUid,
       amount: amounts.landlordAmount,
-      accountId: landlordAccountId,
+      ...landlordAccount,
       reference: `DISP-${transactionId}-LORD-${timestamp}`,
     },
     ...(afterData.agentUid && amounts.agentAmount > 0
@@ -100,7 +122,7 @@ export async function runDisbursement(transactionId: string): Promise<void> {
             recipientType: 'agent' as const,
             recipientUid: afterData.agentUid as string,
             amount: amounts.agentAmount,
-            accountId: agentAccountId,
+            ...agentAccount,
             reference: `DISP-${transactionId}-AGENT-${timestamp}`,
           },
         ]
@@ -134,15 +156,16 @@ export async function runDisbursement(transactionId: string): Promise<void> {
   };
 
   for (const recipient of requiredRecipients) {
-    if (!recipient.accountId) {
+    const hasAccount = provider === 'monnify' ? !!recipient.monnifyAccount : !!recipient.nombaAccountId;
+    if (!hasAccount) {
       console.error(
-        `[DISBURSEMENT] ${recipient.recipientType} (${recipient.recipientUid}) missing nombaAccountId for transaction ${transactionId}`
+        `[DISBURSEMENT] ${recipient.recipientType} (${recipient.recipientUid}) missing ${provider} payout account for transaction ${transactionId}`
       );
       disbursements[recipient.recipientType] = {
         recipientType: recipient.recipientType,
         amount: recipient.amount,
         status: 'transfer_initiation_failed',
-        failureReason: 'missing_nomba_account',
+        failureReason: provider === 'monnify' ? 'missing_monnify_account' : 'missing_nomba_account',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
@@ -150,23 +173,33 @@ export async function runDisbursement(transactionId: string): Promise<void> {
     }
 
     try {
-      const result = await nombaClient.initiateTransfer({
-        amount: recipient.amount,
-        reference: recipient.reference,
-        recipientAccountId: recipient.accountId,
-        narration: `Rent disbursement - ${recipient.recipientType}`,
-      });
+      const result = provider === 'monnify'
+        ? await monnifyClient.initiateTransfer({
+            amount: recipient.amount,
+            reference: recipient.reference,
+            destinationAccountNumber: recipient.monnifyAccount!.accountNumber,
+            destinationBankCode: recipient.monnifyAccount!.bankCode,
+            destinationAccountName: recipient.monnifyAccount!.accountName,
+            narration: `Rent disbursement - ${recipient.recipientType}`,
+          })
+        : await nombaClient.initiateTransfer({
+            amount: recipient.amount,
+            reference: recipient.reference,
+            recipientAccountId: recipient.nombaAccountId!,
+            narration: `Rent disbursement - ${recipient.recipientType}`,
+          });
 
       disbursements[recipient.recipientType] = {
         recipientType: recipient.recipientType,
         amount: recipient.amount,
-        nombaTransferReference: result.reference,
+        [provider === 'monnify' ? 'monnifyTransferReference' : 'nombaTransferReference']: result.reference,
         status: 'transfer_pending',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
 
-      await logNombaApiCall(
+      const logApiCall = provider === 'monnify' ? logMonnifyApiCall : logNombaApiCall;
+      await logApiCall(
         '/transfers',
         recipient.reference,
         200,
@@ -174,7 +207,7 @@ export async function runDisbursement(transactionId: string): Promise<void> {
       );
 
       console.log(
-        `[NOMBA_TRANSFER] ${recipient.recipientType}: ${'₦'}${(recipient.amount / 100).toLocaleString()} (ref: ${recipient.reference})`
+        `[${provider.toUpperCase()}_TRANSFER] ${recipient.recipientType}: ${'₦'}${(recipient.amount / 100).toLocaleString()} (ref: ${recipient.reference})`
       );
     } catch (error: unknown) {
       console.error(
@@ -186,12 +219,13 @@ export async function runDisbursement(transactionId: string): Promise<void> {
         recipientType: recipient.recipientType,
         amount: recipient.amount,
         status: 'transfer_initiation_failed',
-        failureReason: 'nomba_transfer_error',
+        failureReason: provider === 'monnify' ? 'monnify_transfer_error' : 'nomba_transfer_error',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
 
-      await logNombaApiCall(
+      const logApiCall = provider === 'monnify' ? logMonnifyApiCall : logNombaApiCall;
+      await logApiCall(
         '/transfers',
         recipient.reference,
         isAxiosErrorWithStatus(error) ? error.response.status : 500,

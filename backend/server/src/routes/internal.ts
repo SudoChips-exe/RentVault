@@ -4,6 +4,7 @@ import { TRANSACTION_STATUSES } from '../models';
 import { logTransactionStatusChange } from '../audit-logger';
 import { processRefund } from '../refund';
 import { nombaClient } from '../nomba-client';
+import { monnifyClient } from '../monnify-client';
 import { confirmPaymentReceived } from '../payment-confirmation';
 import { requireInternalSecret, asyncRoute } from '../middleware';
 
@@ -25,16 +26,32 @@ internalRouter.post('/internal/reconcile-payments', requireInternalSecret, async
   let confirmed = 0;
   for (const doc of pending.docs) {
     const transaction = doc.data();
+    const provider: 'nomba' | 'monnify' = transaction.paymentProvider || 'nomba';
     try {
-      const match = await nombaClient.findTransactionByReference(transaction.transactionReference);
-      if (match && match.status === 'SUCCESS') {
-        const didConfirm = await confirmPaymentReceived(
-          doc.id,
-          match.amount,
-          match.nombaTransactionId,
-          'reconciliation:cron'
-        );
-        if (didConfirm) confirmed++;
+      if (provider === 'monnify') {
+        const match = await monnifyClient.findTransactionByReference(transaction.transactionReference);
+        if (match && match.status === 'SUCCESS') {
+          const didConfirm = await confirmPaymentReceived(
+            doc.id,
+            match.amount,
+            match.monnifyTransactionId,
+            'reconciliation:cron',
+            'monnify'
+          );
+          if (didConfirm) confirmed++;
+        }
+      } else {
+        const match = await nombaClient.findTransactionByReference(transaction.transactionReference);
+        if (match && match.status === 'SUCCESS') {
+          const didConfirm = await confirmPaymentReceived(
+            doc.id,
+            match.amount,
+            match.nombaTransactionId,
+            'reconciliation:cron',
+            'nomba'
+          );
+          if (didConfirm) confirmed++;
+        }
       }
     } catch (error) {
       console.error(`[RECONCILE] Failed to check transaction ${doc.id}`, error);

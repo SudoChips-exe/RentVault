@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import * as admin from 'firebase-admin';
 import { nombaClient } from '../nomba-client';
+import { monnifyClient } from '../monnify-client';
 import { generateTransactionReference, TRANSACTION_STATUSES } from '../models';
-import { logTransactionStatusChange, logNombaApiCall } from '../audit-logger';
+import { logTransactionStatusChange, logNombaApiCall, logMonnifyApiCall } from '../audit-logger';
 import { config } from '../config';
 import { ApiError } from '../api-error';
 import { isAxiosErrorWithStatus } from '../error-utils';
@@ -29,9 +30,14 @@ checkoutRouter.post('/checkoutInitiate', checkoutRateLimit, requireAuth, asyncRo
     throw new ApiError('failed-precondition', 'Complete tenant verification before paying rent');
   }
 
-  const { listingId } = req.body;
+  const { listingId, provider: rawProvider } = req.body;
   if (!listingId || typeof listingId !== 'string') {
     throw new ApiError('invalid-argument', 'listingId is required');
+  }
+
+  const provider: 'nomba' | 'monnify' = rawProvider === undefined ? 'nomba' : rawProvider;
+  if (provider !== 'nomba' && provider !== 'monnify') {
+    throw new ApiError('invalid-argument', 'provider must be "nomba" or "monnify"');
   }
 
   const listingDoc = await db.collection('listings').doc(listingId).get();
@@ -52,7 +58,8 @@ checkoutRouter.post('/checkoutInitiate', checkoutRateLimit, requireAuth, asyncRo
 
   let checkoutUrl: string;
   try {
-    const checkout = await nombaClient.createCheckout({
+    const client = provider === 'monnify' ? monnifyClient : nombaClient;
+    const checkout = await client.createCheckout({
       amount: listing.monthlyRent,
       reference: transactionReference,
       customerEmail: user.email || 'tenant@example.com',
@@ -65,11 +72,19 @@ checkoutRouter.post('/checkoutInitiate', checkoutRateLimit, requireAuth, asyncRo
     });
     checkoutUrl = checkout.checkoutUrl;
 
-    await logNombaApiCall('/checkout', transactionReference, 200);
+    if (provider === 'monnify') {
+      await logMonnifyApiCall('/checkout', transactionReference, 200);
+    } else {
+      await logNombaApiCall('/checkout', transactionReference, 200);
+    }
   } catch (error: unknown) {
-    console.error('[CHECKOUT] Nomba API error', error);
+    console.error(`[CHECKOUT] ${provider} API error`, error);
     const status = isAxiosErrorWithStatus(error) ? error.response.status : 500;
-    await logNombaApiCall('/checkout', transactionReference, status);
+    if (provider === 'monnify') {
+      await logMonnifyApiCall('/checkout', transactionReference, status);
+    } else {
+      await logNombaApiCall('/checkout', transactionReference, status);
+    }
     throw new ApiError('unavailable', 'Payment provider unavailable, please try again');
   }
 
@@ -82,7 +97,8 @@ checkoutRouter.post('/checkoutInitiate', checkoutRateLimit, requireAuth, asyncRo
     amount: listing.monthlyRent,
     status: TRANSACTION_STATUSES.PENDING_PAYMENT,
     splitConfigSnapshot: {},
-    nombaCheckoutUrl: checkoutUrl,
+    paymentProvider: provider,
+    [provider === 'monnify' ? 'monnifyCheckoutUrl' : 'nombaCheckoutUrl']: checkoutUrl,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };

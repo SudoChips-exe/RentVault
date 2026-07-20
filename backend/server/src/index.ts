@@ -86,6 +86,7 @@ admin.initializeApp({
 
 import { errorHandler } from './middleware';
 import { webhookRouter } from './routes/webhook';
+import { monnifyWebhookRouter } from './routes/webhook-monnify';
 import { checkoutRouter } from './routes/checkout';
 import { verificationRouter } from './routes/verification';
 import { tenantVerificationRouter } from './routes/tenant-verification';
@@ -106,9 +107,11 @@ async function main() {
   app.set('trust proxy', 1);
 
   const apiRouter = express.Router();
-  // webhooks/nomba needs the raw body for signature validation, so it must
-  // be mounted before the JSON body parser touches the request.
+  // webhooks/nomba and webhooks/monnify need the raw body for signature
+  // validation, so they must be mounted before the JSON body parser touches
+  // the request.
   apiRouter.use(webhookRouter);
+  apiRouter.use(monnifyWebhookRouter);
   apiRouter.use(express.json());
   apiRouter.get('/health', (_req, res) => res.json({ ok: true }));
   apiRouter.use(checkoutRouter);
